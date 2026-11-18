@@ -32,3 +32,8 @@ export function useSetting<K extends SettingKey>(key: K): SettingsMap[K] {
   const v = useLiveQuery(() => getSetting(key), [key])
   return v === undefined ? DEFAULTS[key] : v
 }
+
+/** Un provider Gemini senza chiave (es. dopo un ripristino) vale come il default gratuito. */
+export function effectiveProvider<K extends 'stt.provider' | 'translator.provider'>(key: K, value: SettingsMap[K], hasKey: boolean): SettingsMap[K] {
+  return !hasKey && value.startsWith('gemini') ? DEFAULTS[key] : value
+}

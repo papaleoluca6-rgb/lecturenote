@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { setSetting, useSetting } from '../../db/settings'
+import { db } from '../../db/schema'
+import { DEFAULTS, getSetting, setSetting, useSetting } from '../../db/settings'
 
 export function ApiKeyField() {
   const saved = useSetting('apiKey.gemini')
@@ -13,11 +14,13 @@ export function ApiKeyField() {
   }
   const clear = async () => {
     if (!confirm('Cancellare la chiave Gemini?')) return
-    await setSetting('apiKey.gemini', '')
+    await db.transaction('rw', db.settings, async () => {
+      await setSetting('apiKey.gemini', '')
+      // Senza chiave le opzioni Gemini non sono valide: se erano scelte, torna ai default gratuiti.
+      if ((await getSetting('stt.provider')) === 'gemini-chunks') await setSetting('stt.provider', DEFAULTS['stt.provider'])
+      if ((await getSetting('translator.provider')) === 'gemini') await setSetting('translator.provider', DEFAULTS['translator.provider'])
+    })
     setEdit(null)
-    // Senza chiave le opzioni Gemini non sono più valide: torna ai default gratuiti.
-    await setSetting('stt.provider', 'webspeech-device')
-    await setSetting('translator.provider', 'chrome')
   }
 
   return (

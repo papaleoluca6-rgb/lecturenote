@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
-import { setSetting, useSetting } from '../../db/settings'
+import { effectiveProvider, setSetting, useSetting } from '../../db/settings'
 import { ApiKeyField } from './ApiKeyField'
 import { ChoiceGroup } from './ChoiceGroup'
 import './settings.css'
 
 export function SettingsScreen({ onClose, children }: { onClose: () => void; children?: ReactNode }) {
-  const stt = useSetting('stt.provider')
-  const translator = useSetting('translator.provider')
   const noKey = !useSetting('apiKey.gemini')
+  const stt = effectiveProvider('stt.provider', useSetting('stt.provider'), !noKey)
+  const translator = effectiveProvider('translator.provider', useSetting('translator.provider'), !noKey)
 
   return (
     <main className="lib">
