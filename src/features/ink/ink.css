@@ -1,0 +1,14 @@
+.ink-layer { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.ink-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 6px; }
+.ink-btn { min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 2px solid transparent; background: var(--s2); color: var(--text); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ink-btn.on { border-color: var(--accent); background: var(--s3); }
+.ink-btn:disabled { opacity: 0.35; cursor: default; }
+.ink-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); }
+.ink-dot { border-radius: 50%; background: var(--text); }
+.ink-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+.ink-nb { display: grid; gap: 8px; }
+.ink-stage { height: clamp(240px, 62vh, 900px); background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ink-paper { position: relative; background: var(--paper); border-radius: 4px; }
+.ink-nav { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.ink-count { color: var(--t2); min-width: 80px; text-align: center; }
+.ink-empty { background: var(--s1); border: 1px dashed var(--border); border-radius: var(--r); padding: 24px 16px; text-align: center; color: var(--t2); display: grid; gap: 12px; justify-items: center; }

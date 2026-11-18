@@ -1,0 +1,79 @@
+/* Token di design: usare SEMPRE queste variabili, mai colori scritti a mano nei componenti. */
+:root {
+  --bg: #0b0b12;
+  --s1: #13131c;
+  --s2: #1b1b26;
+  --s3: #252534;
+  --text: #eeeef8;
+  --t2: #a0a0bc;
+  --t3: #60607a;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #5b5fff;
+  --rec: #ff4055;
+  --ok: #38e8a0;
+  --warn: #ffb830;
+  /* Penna: colori dell'inchiostro (su carta bianca) e della pagina */
+  --paper: #ffffff;
+  --ink-black: #1a1a24;
+  --ink-blue: #1f4fd8;
+  --ink-red: #d8253a;
+  --ink-green: #12895a;
+  --ink-hl-yellow: #ffe14d;
+  --ink-hl-green: #7dffb0;
+  --r: 14px;
+  --font: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', 'Roboto Mono', monospace;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.shell {
+  padding: max(24px, env(safe-area-inset-top)) 24px 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.logo em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.muted {
+  color: var(--t2);
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+/* Schede (es. Slide / Pagine bianche) */
+.tabs { display: flex; gap: 6px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 4px; }
+.tab { flex: 1; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--t2); font: inherit; font-weight: 600; cursor: pointer; }
+.tab.on { background: var(--s3); color: var(--text); }

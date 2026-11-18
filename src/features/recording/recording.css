@@ -1,0 +1,23 @@
+.rec { padding: max(24px, env(safe-area-inset-top)) 24px 24px; display: grid; gap: 20px; align-content: start; max-width: 1200px; margin: 0 auto; }
+.rec-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rec-title { flex: 1; min-width: 200px; display: grid; gap: 4px; }
+.rec-input { min-height: 44px; padding: 0 14px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s1); color: var(--text); font: inherit; font-size: 20px; font-weight: 600; }
+.rec-input:focus { outline: 2px solid var(--accent); }
+.rec-muted { color: var(--t2); font-size: 14px; }
+.rec-btn { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s2); color: var(--text); font: inherit; cursor: pointer; }
+.rec-btn.big { min-height: 64px; padding: 0 28px; font-size: 18px; font-weight: 600; }
+.rec-btn.record { background: var(--rec); border-color: var(--rec); }
+.rec-panel { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 32px 16px; display: grid; gap: 12px; justify-items: center; text-align: center; }
+.rec-state { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); font-weight: 600; }
+.rec-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--t3); }
+.rec-panel.recording .rec-dot { background: var(--rec); animation: rec-blink 1.2s infinite; }
+.rec-panel.recording .rec-state { color: var(--rec); }
+.rec-panel.paused .rec-dot { background: var(--warn); }
+.rec-panel.paused .rec-state { color: var(--warn); }
+.rec-timer { font-size: clamp(56px, 12vw, 96px); font-weight: 700; letter-spacing: -2px; }
+.rec-controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.rec-error { color: var(--rec); }
+.rec-segs { list-style: none; display: grid; gap: 8px; }
+.rec-seg { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; display: grid; gap: 8px; }
+.rec-seg audio { width: 100%; }
+@keyframes rec-blink { 50% { opacity: 0.3; } }

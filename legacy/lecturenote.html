@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>LectureNote</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08080e;--s1:#111118;--s2:#18181f;--s3:#222230;--s4:#2e2e40;
+  --accent:#5b5fff;--accent2:#ff5f7e;--accent3:#38e8a0;--amber:#ffb830;
+  --text:#eeeef8;--t2:#9494b4;--t3:#55556a;--border:rgba(255,255,255,0.07);
+  --rec:#ff4055;--r:14px;--r2:20px;
+}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Space Mono',monospace}
+.screen{display:none;flex-direction:column;min-height:100vh;animation:fadeIn .25s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hidden{display:none!important}
+
+/* ── SHARED ── */
+.logo{font-size:22px;font-weight:800;letter-spacing:-1px}.logo em{color:var(--accent);font-style:normal}
+.home-sub{color:var(--t3);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 1.5rem 1.5rem}
+.stat-box{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px;text-align:center}
+.stat-n{font-size:24px;font-weight:700;color:var(--accent);font-family:'Space Mono',monospace}
+.stat-l{font-size:10px;color:var(--t3);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.new-btn{margin:0 1.5rem .75rem;background:var(--accent);border:none;border-radius:var(--r2);padding:18px;width:calc(100% - 3rem);font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .15s,filter .15s;box-shadow:0 4px 24px rgba(91,95,255,.35)}
+.new-btn:hover{filter:brightness(1.1)}.new-btn:active{transform:scale(.97)}
+.rec-dot{width:22px;height:22px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.rec-dot::before{content:'';width:9px;height:9px;background:#fff;border-radius:50%}
+.btn-row{display:flex;gap:10px;padding:0 1.5rem .75rem}
+.sec-btn{flex:1;background:transparent;border:1px solid var(--border);border-radius:var(--r);padding:13px 10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:border-color .2s,color .2s}
+.sec-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sec-btn.green{border-color:rgba(56,232,160,.25);color:var(--accent3)}.sec-btn.green:hover{border-color:var(--accent3)}
+.section-hd{padding:0 1.5rem .6rem;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:1px}
+.lessons{padding:0 1.5rem 2rem;flex:1;overflow-y:auto}
+.lesson-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .2s,transform .15s}
+.lesson-card:hover{border-color:rgba(91,95,255,.4)}.lesson-card:active{transform:scale(.985)}
+.lc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.lc-title{font-size:15px;font-weight:700;flex:1;padding-right:10px}
+.lc-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;background:rgba(56,232,160,.12);color:var(--accent3)}
+.lc-course{font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px}
+.lc-meta{font-size:11px;color:var(--t3);font-family:'Space Mono',monospace;display:flex;flex-wrap:wrap;gap:8px}
+.empty-state{text-align:center;padding:3rem 2rem;color:var(--t3)}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.empty-text{font-size:14px;line-height:1.6}
+.back-btn{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:9px 14px;color:var(--t2);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:color .2s}
+.back-btn:hover{color:var(--text)}
+.course-field{width:100%;max-width:380px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;font-family:'Syne',sans-serif;font-size:14px;color:var(--text);text-align:center;outline:none;transition:border-color .2s}
+.course-field::placeholder{color:var(--t3)}.course-field:focus{border-color:var(--accent)}
+.ann-panel{width:100%;max-width:380px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:10px}
+.ann-panel-title{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;font-weight:600}
+.ann-list{max-height:80px;overflow-y:auto;margin-bottom:7px}
+.ann-item{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.ann-item:last-child{border-bottom:none}
+.ann-ts{font-family:'Space Mono',monospace;color:var(--accent);min-width:40px;font-size:10px;margin-top:1px}
+.ann-text{color:var(--t2);flex:1;line-height:1.4}
+.ann-photo-thumb{width:30px;height:30px;border-radius:5px;object-fit:cover}
+.ann-input-row{display:flex;gap:6px}
+.ann-input{flex:1;background:var(--s3);border:1px solid var(--border);border-radius:9px;padding:8px 11px;font-family:'Syne',sans-serif;font-size:12px;color:var(--text);outline:none}
+.ann-input::placeholder{color:var(--t3)}.ann-input:focus{border-color:var(--accent)}
+.ann-submit{background:var(--accent);border:none;border-radius:9px;width:34px;height:34px;color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+.photo-btn{background:var(--s3);border:1px solid var(--border);border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:14px;transition:border-color .2s}
+.photo-btn:hover{border-color:var(--accent)}
+
+/* ── RECORDING BADGES ── */
+.glow{position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(255,64,85,.1) 0%,transparent 65%);top:10px;left:50%;transform:translateX(-50%);pointer-events:none;animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.08)}}
+.rec-header{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.5rem .75rem;position:relative;z-index:2}
+.live-badge{display:flex;align-items:center;gap:7px;font-family:'Space Mono',monospace;font-size:11px;color:var(--rec);background:rgba(255,64,85,.1);border:1px solid rgba(255,64,85,.2);border-radius:20px;padding:5px 11px}
+.live-dot{width:7px;height:7px;background:var(--rec);border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.pause-badge{display:flex;align-items:center;gap:7px;font-family:'Space Mono',monospace;font-size:11px;color:var(--amber);background:rgba(255,184,48,.1);border:1px solid rgba(255,184,48,.2);border-radius:20px;padding:5px 11px}
+.rec-center{flex:1;display:flex;flex-direction:column;align-items:center;padding:.5rem 1.25rem;position:relative;z-index:2;gap:.9rem;overflow-y:auto}
+.timer-display{font-family:'Space Mono',monospace;font-size:48px;font-weight:700;letter-spacing:-2px;line-height:1}
+.waveform{display:flex;align-items:center;gap:3px;height:40px}
+.wb{width:4px;background:var(--rec);border-radius:2px;animation:wv var(--d,.8s) ease-in-out infinite alternate;animation-delay:var(--dl,0s)}
+.wb.paused{animation-play-state:paused;height:4px!important}
+@keyframes wv{from{height:4px}to{height:var(--h,28px)}}
+.transc-box{width:100%;max-width:380px;max-height:100px;overflow-y:auto;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.transc-box p{font-size:12px;color:var(--t2);line-height:1.7;font-family:'Space Mono',monospace}
+.cursor{display:inline-block;width:2px;height:12px;background:var(--accent);margin-left:2px;vertical-align:middle;animation:cur .8s infinite}
+@keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
+.rec-bottom{display:flex;gap:10px;padding:.75rem 1.5rem 1.25rem;position:relative;z-index:2;flex-shrink:0;flex-wrap:wrap}
+.ctrl-btn{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px 8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--t2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .2s,color .2s,background .2s;text-transform:uppercase;letter-spacing:.5px;min-width:60px}
+.ctrl-btn svg{width:18px;height:18px}
+.ctrl-btn:hover{border-color:var(--accent);color:var(--text)}
+.stop-btn{background:rgba(255,64,85,.1);border-color:rgba(255,64,85,.3);color:var(--rec)}
+.stop-btn:hover{background:rgba(255,64,85,.2)!important;border-color:var(--rec)!important;color:var(--rec)!important}
+.pause-active{background:rgba(255,184,48,.1)!important;border-color:rgba(255,184,48,.3)!important;color:var(--amber)!important}
+.slides-open-btn{flex:1;background:var(--s2);border:1px solid rgba(91,95,255,.3);border-radius:var(--r);padding:12px 8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;min-width:60px}
+.slides-open-btn:hover{background:rgba(91,95,255,.1)}
+.slides-open-btn svg{width:18px;height:18px}
+.pdf-progress{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;max-width:380px;width:100%;text-align:center}
+.pdf-bar-bg{background:var(--s3);border-radius:4px;height:6px;margin-top:8px;overflow:hidden}
+.pdf-bar-fill{background:var(--accent);height:100%;border-radius:4px;transition:width .3s}
+
+/* ── SLIDE VIEWER ── */
+.slide-viewer{position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column}
+.sv-strip{display:flex;gap:6px;overflow-x:auto;padding:.5rem 1rem;background:rgba(0,0,0,.4);flex-shrink:0}
+.sv-strip::-webkit-scrollbar{height:3px}.sv-strip::-webkit-scrollbar-thumb{background:var(--s4)}
+.sv-thumb{width:52px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:.5;transition:all .2s;flex-shrink:0}
+.sv-thumb.active{border-color:var(--accent);opacity:1}
+.sv-thumb.pinned-thumb{border-color:var(--accent3);opacity:.8}
+.sv-canvas-wrap{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sv-img{max-width:100%;max-height:100%;object-fit:contain;display:block;pointer-events:none;position:absolute}
+.sv-canvas{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;touch-action:none}
+.sv-prev-zone{position:absolute;left:0;top:0;width:15%;height:100%;display:flex;align-items:center;padding-left:8px;opacity:0;transition:opacity .2s;z-index:2}
+.sv-next-zone{position:absolute;right:0;top:0;width:15%;height:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;opacity:0;transition:opacity .2s;z-index:2}
+.sv-prev-zone:hover,.sv-next-zone:hover{opacity:1}
+.sv-arrow{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;cursor:pointer}
+.sv-toolbar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.9));padding:2rem 1rem 1.25rem;display:flex;flex-direction:column;gap:.65rem;z-index:3}
+.sv-counter{text-align:center;font-family:'Space Mono',monospace;font-size:11px;color:rgba(255,255,255,.4)}
+.sv-timer{text-align:center;font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:#fff;letter-spacing:-1px}
+.sv-pin-indicator{text-align:center;font-size:11px;color:var(--accent3);font-weight:600;min-height:15px}
+.sv-actions{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.sv-btn{background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:9px 12px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:background .2s;min-width:58px}
+.sv-btn:hover{background:rgba(255,255,255,.2)}
+.sv-btn span{font-size:17px;line-height:1}
+.sv-btn.sv-pause{border-color:rgba(255,184,48,.4);color:var(--amber)}
+.sv-btn.sv-stop{border-color:rgba(255,64,85,.4);color:var(--rec)}
+.sv-btn.sv-pin{border-color:rgba(91,95,255,.4);color:#a0a0ff}
+.sv-btn.sv-pin.pinned{background:rgba(91,95,255,.25);border-color:var(--accent)}
+.sv-btn.sv-ann{border-color:rgba(56,232,160,.3);color:var(--accent3)}
+.sv-btn.sv-draw-active{background:rgba(91,95,255,.3)!important;border-color:var(--accent)!important}
+.sv-ann-bar{display:flex;gap:8px;align-items:center}
+.sv-ann-input{flex:1;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:9px 12px;font-family:'Syne',sans-serif;font-size:13px;color:#fff;outline:none}
+.sv-ann-input::placeholder{color:rgba(255,255,255,.35)}
+.sv-ann-submit{background:var(--accent);border:none;border-radius:10px;width:36px;height:36px;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+
+/* Draw toolbar */
+.draw-toolbar{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}
+.draw-tool-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:7px 12px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.6);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px}
+.draw-tool-btn.active{background:rgba(91,95,255,.3);border-color:var(--accent);color:#fff}
+.draw-tool-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+.color-btn{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s}
+.color-btn.active-color{border-color:#fff;transform:scale(1.2)}
+.size-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 9px;font-size:11px;color:rgba(255,255,255,.6);cursor:pointer;font-family:'Space Mono',monospace}
+.size-btn.active{background:rgba(91,95,255,.3);border-color:var(--accent);color:#fff}
+.undo-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer}
+.undo-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+.text-input-wrap{display:flex;gap:8px;align-items:center}
+.sv-text-input{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-family:'Syne',sans-serif;font-size:13px;color:#fff;outline:none}
+.sv-text-input::placeholder{color:rgba(255,255,255,.35)}
+.sv-text-submit{background:var(--accent);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+
+/* ── AUDIO UPLOAD SCREEN ── */
+.audio-player-wrap{width:100%;max-width:420px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.audio-progress-row{display:flex;align-items:center;gap:10px}
+.audio-progress-bg{flex:1;height:6px;background:var(--s3);border-radius:3px;cursor:pointer}
+.audio-progress-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width .3s linear;pointer-events:none}
+.audio-ctrl-btn{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .2s}
+.audio-ctrl-btn:hover{border-color:var(--accent);color:var(--accent)}
+.audio-play-btn{background:var(--accent);border-color:var(--accent);color:#fff}
+.audio-play-btn:hover{filter:brightness(1.15);color:#fff!important}
+
+/* Upload steps UI */
+.upload-steps{width:100%;max-width:420px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.upload-step{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.upload-step:last-child{border-bottom:none}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--s3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--t3);flex-shrink:0}
+.step-num.done{background:rgba(56,232,160,.15);border-color:var(--accent3);color:var(--accent3)}
+.step-num.active{background:rgba(91,95,255,.15);border-color:var(--accent);color:var(--accent)}
+.step-info{flex:1}
+.step-label{font-size:13px;font-weight:700;color:var(--text)}
+.step-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.step-action{flex-shrink:0}
+.step-btn{background:var(--s3);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .2s}
+.step-btn:hover{border-color:var(--accent);color:var(--accent)}
+.step-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.step-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Gemini upload progress */
+.gemini-progress{background:var(--s2);border:1px solid rgba(91,95,255,.2);border-radius:var(--r);padding:14px;margin-top:10px;width:100%;max-width:420px}
+.gemini-prog-label{font-size:12px;color:var(--t2);margin-bottom:8px;font-weight:600}
+.gemini-prog-bar-bg{background:var(--s3);border-radius:4px;height:6px;overflow:hidden}
+.gemini-prog-bar-fill{background:linear-gradient(90deg,var(--accent),#a855f7);height:100%;border-radius:4px;transition:width .5s}
+.gemini-prog-status{font-size:11px;color:var(--t3);margin-top:6px;font-family:'Space Mono',monospace}
+
+/* ── DETAIL ── */
+.detail-header{display:flex;align-items:center;gap:10px;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid var(--border)}
+.detail-title-wrap{flex:1}
+.detail-title{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.detail-course{font-size:12px;color:var(--accent);font-weight:600;margin-top:2px}
+.detail-meta{font-size:10px;color:var(--t3);font-family:'Space Mono',monospace;margin-top:2px}
+.export-btn{background:transparent;border:1px solid var(--border);border-radius:12px;padding:9px 13px;color:var(--t2);cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;transition:border-color .2s,color .2s;white-space:nowrap}
+.export-btn:hover{border-color:var(--accent);color:var(--accent)}
+.detail-body{flex:1;overflow-y:auto;padding:1.25rem 1.5rem}
+.tab-row{display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);color:var(--t2);transition:all .2s;text-transform:uppercase;letter-spacing:.5px}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab-content{display:none}.tab-content.active{display:block}
+.paragraph-block{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.para-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.para-ts{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);font-weight:700}
+.para-len{font-size:11px;color:var(--t3)}
+.para-text{font-size:13px;color:var(--t2);line-height:1.8}
+.keyword{background:rgba(91,95,255,.15);color:var(--accent);border-radius:4px;padding:1px 5px;font-weight:600}
+.ann-detail-item{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:10px}
+.ann-detail-ts{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);font-weight:700;white-space:nowrap;padding-top:2px}
+.ann-detail-note{font-size:13px;color:var(--text);line-height:1.6}
+.ann-detail-img{width:100%;border-radius:10px;margin-top:8px;max-height:200px;object-fit:cover}
+
+/* ── AUDIO PLAYER (detail) ── */
+.audio-review-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.audio-review-title{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:10px}
+.review-progress-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.review-progress-bg{flex:1;height:6px;background:var(--s3);border-radius:3px;cursor:pointer;position:relative}
+.review-progress-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;pointer-events:none}
+.review-progress-thumb{position:absolute;top:50%;width:14px;height:14px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;transition:left .2s}
+.review-ctrl-row{display:flex;gap:8px;justify-content:center;align-items:center}
+.rev-btn{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .2s}
+.rev-btn:hover{border-color:var(--accent);color:var(--accent)}
+.rev-play{background:var(--accent);border-color:var(--accent);color:#fff;min-width:80px}
+.rev-play:hover{filter:brightness(1.1);color:#fff!important;border-color:var(--accent)!important}
+.rev-time{font-family:'Space Mono',monospace;font-size:12px;color:var(--t2)}
+
+/* ── SLIDE DETAIL ── */
+.slide-pin-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px;transition:border-color .2s}
+.slide-pin-card:hover{border-color:rgba(91,95,255,.4)}
+.spc-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px}
+.spc-num{font-size:12px;font-weight:700}
+.spc-range{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent)}
+.spc-img-wrap{position:relative}
+.spc-img{width:100%;max-height:220px;object-fit:contain;background:var(--s2);display:block}
+.spc-annotations-overlay{position:absolute;inset:0;pointer-events:none}
+.spc-play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(91,95,255,.85);border:none;border-radius:50%;width:52px;height:52px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,filter .15s;backdrop-filter:blur(4px)}
+.spc-play-btn:hover{transform:translate(-50%,-50%) scale(1.1);filter:brightness(1.2)}
+.spc-footer{padding:8px 14px;font-size:11px;color:var(--t3);display:flex;align-items:center;justify-content:space-between}
+
+/* ── AI ── */
+.ai-elaborate-btn{width:100%;padding:15px;border-radius:var(--r);border:none;background:linear-gradient(135deg,#5b5fff,#a855f7);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;cursor:pointer;transition:filter .2s,transform .15s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(91,95,255,.3)}
+.ai-elaborate-btn:hover{filter:brightness(1.1)}.ai-elaborate-btn:active{transform:scale(.97)}.ai-elaborate-btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.ai-result{background:var(--s1);border:1px solid rgba(91,95,255,.2);border-radius:var(--r);padding:16px;margin-top:12px}
+.ai-result h3{font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px}.ai-result h3:first-child{margin-top:0}
+.ai-result p,.ai-result li{font-size:13px;color:var(--t2);line-height:1.8}
+.ai-result ul{padding-left:1.2rem;margin-bottom:8px}.ai-result li{margin-bottom:4px}
+.ai-loading{display:flex;align-items:center;gap:10px;color:var(--t2);font-size:13px;padding:1rem 0}
+.ai-spinner{width:18px;height:18px;border:2px solid var(--s4);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.api-key-row{display:flex;gap:8px;margin-bottom:12px}
+.api-key-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text);outline:none;transition:border-color .2s}
+.api-key-input::placeholder{color:var(--t3)}.api-key-input:focus{border-color:var(--accent)}
+.api-key-save{background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--t2);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.api-key-save:hover{border-color:var(--accent);color:var(--accent)}
+.ai-privacy-notice{background:rgba(255,184,48,.07);border:1px solid rgba(255,184,48,.2);border-radius:var(--r);padding:12px;margin-bottom:12px;font-size:12px;color:var(--amber);line-height:1.6}
+
+/* ── STUDY VIEWER ── */
+.study-viewer{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column}
+.study-viewer.hidden{display:none!important}
+.study-img-wrap{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.study-img{max-width:100%;max-height:100%;object-fit:contain;display:block;position:absolute;pointer-events:none}
+.study-annot{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.study-prev-zone{position:absolute;left:0;top:0;width:15%;height:100%;display:flex;align-items:center;padding-left:8px;opacity:0;transition:opacity .2s;cursor:pointer;z-index:2}
+.study-next-zone{position:absolute;right:0;top:0;width:15%;height:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;opacity:0;transition:opacity .2s;cursor:pointer;z-index:2}
+.study-prev-zone:hover,.study-next-zone:hover{opacity:1}
+.study-arrow{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+/* Floating audio player on slide */
+.study-audio-pill{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.75);backdrop-filter:blur(12px);
+  border:1px solid rgba(91,95,255,.4);border-radius:50px;
+  display:flex;align-items:center;gap:10px;padding:10px 16px;
+  z-index:3;min-width:240px;max-width:90vw;
+}
+.study-play-btn{
+  background:var(--accent);border:none;border-radius:50%;
+  width:38px;height:38px;color:#fff;cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:filter .15s;
+}
+.study-play-btn:hover{filter:brightness(1.2)}
+.study-prog-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.study-prog-times{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,.5)}
+.study-prog-bg{height:4px;background:rgba(255,255,255,.15);border-radius:2px;cursor:pointer;position:relative}
+.study-prog-fill{height:100%;background:var(--accent);border-radius:2px;pointer-events:none;transition:width .2s linear}
+.study-no-audio{font-size:11px;color:rgba(255,255,255,.3);font-family:'Space Mono',monospace}
+/* Top bar */
+.study-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.75rem 1rem;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;
+}
+.study-counter{font-family:'Space Mono',monospace;font-size:11px;color:rgba(255,255,255,.5)}
+.study-slide-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.7);flex:1;text-align:center;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.study-close-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:7px 12px;color:rgba(255,255,255,.7);cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;transition:background .2s}
+.study-close-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+/* Thumbnail strip */
+.study-strip{display:flex;gap:6px;overflow-x:auto;padding:.5rem 1rem;background:rgba(0,0,0,.4);flex-shrink:0}
+.study-strip::-webkit-scrollbar{height:3px}.study-strip::-webkit-scrollbar-thumb{background:var(--s4)}
+.study-thumb{width:52px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:.45;transition:all .2s;flex-shrink:0}
+.study-thumb.active{border-color:var(--accent);opacity:1}
+.study-thumb.pinned-t{border-color:var(--accent3);opacity:.75}
+/* Pin label */
+.study-pin-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(56,232,160,.15);border:1px solid rgba(56,232,160,.3);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--accent3);font-family:'Space Mono',monospace;white-space:nowrap;z-index:3}
+
+/* Rivedere slide button in detail tab */
+.study-open-btn{
+  width:100%;padding:14px;border-radius:var(--r);border:1px solid rgba(91,95,255,.3);
+  background:rgba(91,95,255,.07);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;
+  color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:14px;transition:background .2s,border-color .2s;
+}
+.study-open-btn:hover{background:rgba(91,95,255,.14);border-color:var(--accent)}
+
+.continue-btn{background:rgba(56,232,160,.1);border:1px solid rgba(56,232,160,.3);border-radius:12px;padding:9px 13px;color:var(--accent3);cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;transition:all .2s;white-space:nowrap}
+.continue-btn:hover{background:rgba(56,232,160,.2);border-color:var(--accent3)}
+.rec-session-banner{background:rgba(56,232,160,.08);border:1px solid rgba(56,232,160,.2);border-radius:var(--r);padding:10px 14px;max-width:380px;width:100%;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--accent3)}
+.rec-session-banner strong{font-weight:700}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none!important}
+.modal-sheet{background:var(--s1);border-radius:24px 24px 0 0;padding:1.5rem;width:100%;max-width:480px;border-top:1px solid var(--border);animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--t2);margin-bottom:1.5rem;line-height:1.6}
+.modal-btns{display:flex;flex-direction:column;gap:10px}
+.modal-btn{padding:15px;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-align:center;transition:filter .15s;border:none}
+.modal-btn-primary{background:var(--accent);color:#fff}
+.modal-btn-secondary{background:var(--s3);color:var(--text)}
+.modal-btn:hover{filter:brightness(1.1)}
+.modal-close{background:transparent;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:12px 0 0;font-family:'Syne',sans-serif;width:100%;text-align:center}
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:2rem}
+.confirm-overlay.hidden{display:none!important}
+.confirm-box{background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:1.75rem;max-width:360px;width:100%}
+.confirm-title{font-size:17px;font-weight:800;margin-bottom:8px}
+.confirm-body{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:1.25rem}
+.confirm-btns{display:flex;gap:10px}
+.confirm-btns button{flex:1;padding:13px;border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:filter .15s}
+.confirm-btns button:hover{filter:brightness(1.1)}
+.confirm-ok{background:linear-gradient(135deg,#5b5fff,#a855f7);color:#fff}
+.confirm-cancel{background:var(--s3);color:var(--t2)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:11px 20px;border-radius:20px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;z-index:9999;transition:opacity .4s;white-space:nowrap;opacity:0;pointer-events:none}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ══ HOME ══ -->
+<div id="home" class="screen active">
+  <div style="padding:2rem 1.5rem 1.25rem;display:flex;justify-content:space-between;align-items:center">
+    <div><div class="logo">Lecture<em>Note</em></div><div class="home-sub">Registratore universitario</div></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-n" id="statCount">0</div><div class="stat-l">Lezioni</div></div>
+    <div class="stat-box"><div class="stat-n" id="statHours">0h</div><div class="stat-l">Registrate</div></div>
+    <div class="stat-box"><div class="stat-n" id="statAnn">0</div><div class="stat-l">Annotazioni</div></div>
+  </div>
+  <button class="new-btn" onclick="startRecording()"><div class="rec-dot"></div>Nuova Registrazione</button>
+  <div class="btn-row">
+    <button class="sec-btn" onclick="nav('audioupload')">🎵 Analizza Audio</button>
+    <label class="sec-btn green" style="cursor:pointer">📂 Carica Lezione<input type="file" accept=".json" style="display:none" onchange="importLesson(event)"></label>
+  </div>
+  <div class="section-hd">Lezioni salvate</div>
+  <div class="lessons" id="lessonsList"></div>
+</div>
+
+<!-- ══ RECORDING ══ -->
+<div id="recording" class="screen">
+  <div class="glow" id="glowCircle"></div>
+  <div class="rec-header">
+    <button class="back-btn" onclick="confirmStopBack()">← Indietro</button>
+    <div class="live-badge" id="liveBadge"><div class="live-dot"></div>REC</div>
+    <div class="pause-badge hidden" id="pauseBadge">⏸ PAUSA</div>
+  </div>
+  <div class="rec-center">
+    <input class="course-field" id="courseField" placeholder="Nome corso / materia..." maxlength="60">
+    <div class="rec-session-banner hidden" id="recSessionBanner">
+      <span>🔗</span>
+      <span id="recSessionBannerText">Continuazione di: <strong>—</strong></span>
+    </div>
+    <div class="timer-display mono" id="timer">00:00:00</div>
+    <div class="waveform" id="waveform"></div>
+    <div class="transc-box"><p id="transcText"><span style="color:var(--t3)">In attesa del parlato...</span><span class="cursor"></span></p></div>
+    <label class="sec-btn" id="slideLoadBtn" style="cursor:pointer;max-width:380px;width:100%;border-color:rgba(91,95,255,.3);color:var(--accent)">
+      📑 Carica Slide (PDF / JPG / PNG)
+      <input type="file" accept="image/*,.pdf" multiple style="display:none" id="slideInput" onchange="loadSlides(event)">
+    </label>
+    <div class="pdf-progress hidden" id="pdfProgress">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">Elaborazione PDF...</div>
+      <div style="font-size:12px;color:var(--t2);margin-top:4px" id="pdfProgressText">Pagina 0 di 0</div>
+      <div class="pdf-bar-bg"><div class="pdf-bar-fill" id="pdfBarFill" style="width:0%"></div></div>
+    </div>
+    <div class="ann-panel" style="max-width:380px;width:100%">
+      <div class="ann-panel-title">📌 Annotazioni</div>
+      <div class="ann-list" id="annLiveList"></div>
+      <div class="ann-input-row">
+        <input class="ann-input" id="annInput" placeholder="Nota rapida...">
+        <label class="photo-btn">📷<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event,'live')"></label>
+        <button class="ann-submit" onclick="addAnnotation('live')">+</button>
+      </div>
+    </div>
+  </div>
+  <div class="rec-bottom">
+    <button class="ctrl-btn" id="pauseBtn" onclick="togglePause()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Pausa
+    </button>
+    <button class="slides-open-btn hidden" id="slidesOpenBtn" onclick="openSlideViewer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Slide <span id="slidesBadge" style="font-size:9px;background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;margin-left:2px">0</span>
+    </button>
+    <button class="ctrl-btn stop-btn" onclick="stopRecording()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>Fine
+    </button>
+  </div>
+</div>
+
+<!-- ══ SLIDE VIEWER OVERLAY ══ -->
+<div class="slide-viewer hidden" id="slideViewer">
+  <div class="sv-strip" id="svStrip"></div>
+  <div class="sv-canvas-wrap" id="svCanvasWrap">
+    <img class="sv-img" id="svImg" src="" alt="">
+    <canvas class="sv-canvas" id="svCanvas"></canvas>
+    <div class="sv-prev-zone" onclick="svPrev()"><div class="sv-arrow">‹</div></div>
+    <div class="sv-next-zone" onclick="svNext()"><div class="sv-arrow">›</div></div>
+  </div>
+  <div class="sv-toolbar">
+    <div class="sv-counter" id="svCounter">—</div>
+    <div class="sv-timer mono" id="svTimer">00:00:00</div>
+    <div class="sv-pin-indicator" id="svPinIndicator"></div>
+    <!-- Draw tools -->
+    <div class="draw-toolbar" id="drawToolbar">
+      <button class="draw-tool-btn active" id="toolPen" onclick="setDrawTool('pen')">✏️ Penna</button>
+      <button class="draw-tool-btn" id="toolHighlight" onclick="setDrawTool('highlight')">🖍 Evidenziatore</button>
+      <button class="draw-tool-btn" id="toolText" onclick="setDrawTool('text')">T Testo</button>
+      <button class="draw-tool-btn" id="toolErase" onclick="setDrawTool('erase')">🧹 Cancella</button>
+      <div style="display:flex;gap:4px;align-items:center">
+        <div class="color-btn active-color" style="background:#fff" onclick="setColor('#ffffff')" id="colW"></div>
+        <div class="color-btn" style="background:#ff4055" onclick="setColor('#ff4055')" id="colR"></div>
+        <div class="color-btn" style="background:#38e8a0" onclick="setColor('#38e8a0')" id="colG"></div>
+        <div class="color-btn" style="background:#ffb830" onclick="setColor('#ffb830')" id="colY"></div>
+        <div class="color-btn" style="background:#5b5fff" onclick="setColor('#5b5fff')" id="colB"></div>
+      </div>
+      <button class="size-btn active" id="szS" onclick="setSize(2,'szS')">S</button>
+      <button class="size-btn" id="szM" onclick="setSize(5,'szM')">M</button>
+      <button class="size-btn" id="szL" onclick="setSize(10,'szL')">L</button>
+      <button class="undo-btn" onclick="undoStroke()" title="Annulla">↩</button>
+    </div>
+    <!-- Text input (shown when text tool active) -->
+    <div class="text-input-wrap hidden" id="textInputWrap">
+      <input class="sv-text-input" id="svTextInput" placeholder="Scrivi testo da inserire...">
+      <button class="sv-text-submit" onclick="placeText()">Inserisci</button>
+    </div>
+    <!-- Main actions -->
+    <div class="sv-actions">
+      <button class="sv-btn sv-pause" id="svPauseBtn" onclick="togglePause();updateSvPauseBtn()"><span>⏸</span>Pausa</button>
+      <button class="sv-btn sv-pin" id="svPinBtn" onclick="pinCurrentSlide()"><span>📌</span>Aggancia</button>
+      <button class="sv-btn sv-ann" onclick="toggleSvAnnBar()"><span>✏️</span>Annota</button>
+      <button class="sv-btn sv-stop" onclick="stopRecording()"><span>⏹</span>Fine</button>
+      <button class="sv-btn" onclick="closeSlideViewer()" style="border-color:rgba(255,255,255,.2);color:var(--t2)"><span>✕</span>Chiudi</button>
+    </div>
+    <div class="sv-ann-bar hidden" id="svAnnBar">
+      <input class="sv-ann-input" id="svAnnInput" placeholder="Scrivi annotazione...">
+      <label class="photo-btn" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)">📷<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event,'live')"></label>
+      <button class="sv-ann-submit" onclick="submitSvAnn()">+</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AUDIO UPLOAD + GEMINI ══ -->
+<div id="audioupload" class="screen">
+  <div class="rec-header" style="position:relative;z-index:2">
+    <button class="back-btn" onclick="cancelUpload()">← Indietro</button>
+    <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);background:rgba(91,95,255,.1);border:1px solid rgba(91,95,255,.2);border-radius:20px;padding:5px 11px">✨ ANALISI GEMINI</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:.5rem 1.25rem 1rem;gap:1rem;overflow-y:auto">
+    <input class="course-field" id="uploadCourseField" placeholder="Nome corso / materia..." maxlength="60">
+
+    <!-- Step-by-step upload UI -->
+    <div class="upload-steps">
+      <!-- Step 1: Audio -->
+      <div class="upload-step">
+        <div class="step-num active" id="step1num">1</div>
+        <div class="step-info">
+          <div class="step-label">Audio della lezione</div>
+          <div class="step-sub" id="step1sub">Seleziona un file audio da trascrivere</div>
+        </div>
+        <div class="step-action">
+          <label class="step-btn primary" style="cursor:pointer">
+            Scegli<input type="file" accept="audio/*,video/*" style="display:none" onchange="selectAudioFile(event)">
+          </label>
+        </div>
+      </div>
+      <!-- Step 2: Slides (optional) -->
+      <div class="upload-step">
+        <div class="step-num" id="step2num">2</div>
+        <div class="step-info">
+          <div class="step-label">Slide / Appunti <span style="color:var(--t3);font-size:10px">(opzionale)</span></div>
+          <div class="step-sub" id="step2sub">PDF o immagini delle slide del corso</div>
+        </div>
+        <div class="step-action">
+          <label class="step-btn" style="cursor:pointer" id="step2btn">
+            Scegli<input type="file" accept="image/*,.pdf" multiple style="display:none" id="uploadSlideInput" onchange="selectSlideFiles(event)">
+          </label>
+        </div>
+      </div>
+      <!-- Step 3: Analyze -->
+      <div class="upload-step">
+        <div class="step-num" id="step3num">3</div>
+        <div class="step-info">
+          <div class="step-label">Analizza con Gemini AI</div>
+          <div class="step-sub">Gemini trascriverà e riassumerà la lezione</div>
+        </div>
+        <div class="step-action">
+          <button class="step-btn primary" id="analyzeBtn" onclick="startGeminiAnalysis()" disabled>Analizza</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key input -->
+    <div class="api-key-row" style="max-width:420px;width:100%">
+      <input class="api-key-input" id="uploadGeminiKey" type="password" placeholder="Gemini API key (aistudio.google.com)">
+      <button class="api-key-save" onclick="saveApiKey()">Salva</button>
+    </div>
+
+    <!-- Privacy notice -->
+    <div class="ai-privacy-notice" style="max-width:420px;width:100%">
+      ⚠️ L'audio verrà inviato a Google Gemini per la trascrizione. Non inviare registrazioni con dati sensibili.
+    </div>
+
+    <!-- Progress bar (hidden until analysis starts) -->
+    <div class="gemini-progress hidden" id="geminiProgress">
+      <div class="gemini-prog-label" id="geminiProgLabel">Caricamento audio...</div>
+      <div class="gemini-prog-bar-bg"><div class="gemini-prog-bar-fill" id="geminiProgFill" style="width:5%"></div></div>
+      <div class="gemini-prog-status" id="geminiProgStatus">Preparazione...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DETAIL ══ -->
+<div id="detail" class="screen">
+  <div class="detail-header">
+    <button class="detail-back" onclick="nav('home')">← Lezioni</button>
+    <div class="detail-title-wrap">
+      <div class="detail-title" id="detailTitle">—</div>
+      <div class="detail-course" id="detailCourse">—</div>
+      <div class="detail-meta" id="detailMeta">—</div>
+    </div>
+    <button class="export-btn" onclick="openExportModal()">↓ Esporta</button>
+    <button class="continue-btn" id="continueRecBtn" onclick="continueRecording(currentDetailId)">▶ Continua</button>
+  </div>
+  <div class="detail-body">
+    <div class="tab-row">
+      <div class="tab active" onclick="switchTab('transcription')">Trascrizione</div>
+      <div class="tab" onclick="switchTab('slides')">Slide</div>
+      <div class="tab" onclick="switchTab('annotations')">Note</div>
+      <div class="tab" onclick="switchTab('ai')">✨ AI</div>
+    </div>
+    <div id="tab-transcription" class="tab-content active">
+      <div id="prevAudioWrap"></div>
+      <div id="audioReviewWrap"></div>
+      <div id="paragraphsWrap"></div>
+    </div>
+    <div id="tab-slides" class="tab-content"><div id="slidesDetailWrap"></div></div>
+    <div id="tab-annotations" class="tab-content"><div id="annDetailWrap"></div></div>
+    <div id="tab-ai" class="tab-content">
+      <div style="margin-top:.5rem">
+        <div class="ai-privacy-notice">⚠️ <strong>Nota Privacy:</strong> Invia solo la trascrizione testuale a Google Gemini. L'audio rimane sul dispositivo.</div>
+        <div class="api-key-row">
+          <input class="api-key-input" id="geminiKeyInput" type="password" placeholder="Gemini API key (gratis su aistudio.google.com)">
+          <button class="api-key-save" onclick="saveApiKey()">Salva</button>
+        </div>
+        <button class="ai-elaborate-btn" id="elaborateBtn" onclick="showAiConfirm()">✨ Elabora con Gemini AI</button>
+        <div id="aiResult"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STUDY VIEWER (detail, read-only) ══ -->
+<div class="study-viewer hidden" id="studyViewer">
+  <div class="study-topbar">
+    <span class="study-counter" id="studyCounter">—</span>
+    <span class="study-slide-name" id="studySlideName">—</span>
+    <button class="study-close-btn" onclick="closeStudyViewer()">✕ Chiudi</button>
+  </div>
+  <div class="study-strip" id="studyStrip"></div>
+  <div class="study-img-wrap" id="studyImgWrap">
+    <img class="study-img" id="studyImg" src="" alt="">
+    <img class="study-annot hidden" id="studyAnnot" src="" alt="">
+    <div class="study-pin-label hidden" id="studyPinLabel">📌 00:00</div>
+    <div class="study-prev-zone" onclick="studyPrev()"><div class="study-arrow">‹</div></div>
+    <div class="study-next-zone" onclick="studyNext()"><div class="study-arrow">›</div></div>
+    <!-- Floating audio pill -->
+    <div class="study-audio-pill" id="studyAudioPill">
+      <button class="study-play-btn" id="studyPlayBtn" onclick="toggleStudyAudio()">▶</button>
+      <div class="study-prog-wrap">
+        <div class="study-prog-times">
+          <span id="studyCurTime">0:00</span>
+          <span id="studyRange">—</span>
+        </div>
+        <div class="study-prog-bg" id="studyProgBg" onclick="seekStudyAudio(event)">
+          <div class="study-prog-fill" id="studyProgFill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EXPORT MODAL ══ -->
+<div class="modal-overlay hidden" id="exportModal">
+  <div class="modal-sheet">
+    <div class="modal-title">Esporta Lezione</div>
+    <div class="modal-sub">File scaricati localmente. Nessun dato nel browser.</div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-primary" onclick="exportTXT()">📄 Esporta .txt</button>
+      <button class="modal-btn modal-btn-secondary" onclick="exportJSON()">⚙️ Esporta .json (completo)</button>
+    </div>
+    <button class="modal-close" onclick="closeExportModal()">Annulla</button>
+  </div>
+</div>
+
+<!-- AI CONFIRM -->
+<div class="confirm-overlay hidden" id="aiConfirm">
+  <div class="confirm-box">
+    <div class="confirm-title">✨ Elabora con Gemini AI</div>
+    <div class="confirm-body">Stai per inviare la trascrizione a Google Gemini per un riassunto strutturato.<br><br><strong>L'audio NON viene inviato.</strong> Solo il testo trascritto.</div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="hideAiConfirm()">Annulla</button>
+      <button class="confirm-ok" onclick="elaborateWithAI()">Sì, elabora</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<audio id="reviewAudio" style="display:none"></audio>
+<audio id="prevAudio" style="display:none"></audio>
+
+<script>
+// ═══════════════════════
+// INSERISCI QUI LA TUA GEMINI API KEY
+const GEMINI_API_KEY_SAVED = ;
+// ═══════════════════════
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ─── STATE ───
+let sessions = [];
+let currentDetailId = null;
+let recActive = false, recPaused = false;
+let elapsedSecs = 0, timerInt = null;
+let recognition = null;
+let paraAccum = '', allTranscript = '', paraWordCount = 0;
+let paragraphs = [], annotations = [], pinnedSlides = [];
+let slides = [], currentSlideIdx = 0;
+let mediaRecorder = null, audioChunks = [], audioBlob = null;
+let geminiApiKey = GEMINI_API_KEY_SAVED;
+const PARA_WORDS = 60;
+
+// Upload screen state
+let uploadAudioFile = null, uploadSlideFiles = [], uploadSlides = [];
+
+// Drawing state
+let drawTool = 'pen', drawColor = '#ffffff', drawSize = 2;
+let isDrawing = false, lastX = 0, lastY = 0;
+let strokeHistory = []; // array of ImageData snapshots
+
+// Review audio
+let reviewAudioEl = null, reviewTimerInt = null;
+let prevAudioEl = null;
+
+// Session to continue (null = new recording)
+let continueSessionId = null;
+
+// ─── NAVIGATION ───
+function nav(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'home') renderHome();
+  if (id === 'audioupload') resetUploadScreen();
+}
+
+// ─── CONTINUE RECORDING ───
+function continueRecording(sessionId) {
+  const prev = sessions.find(x => x.id === sessionId);
+  if (!prev) return;
+  continueSessionId = sessionId;
+
+  // Pre-load state from previous session
+  paragraphs = (prev.paragraphs || []).map(p => ({...p}));
+  annotations = (prev.annotations || []).map(a => ({...a}));
+  pinnedSlides = (prev.pinnedSlides || []).map(p => ({...p}));
+  slides = (prev.slides || []).map(s => ({...s}));
+  allTranscript = prev.fullTranscript || '';
+  paraAccum = ''; paraWordCount = 0;
+  audioChunks = []; audioBlob = null;
+  elapsedSecs = prev.duration || 0; // timer starts from where we left off
+  recActive = true; recPaused = false;
+  currentSlideIdx = 0;
+
+  nav('recording');
+
+  // Fill UI
+  document.getElementById('courseField').value = prev.course !== 'Corso non specificato' ? prev.course : '';
+  document.getElementById('timer').textContent = fmtSecs(elapsedSecs);
+  document.getElementById('transcText').innerHTML =
+    paragraphs.length
+      ? `<span style="color:var(--t3);font-size:11px">Riprendi dal paragrafo ${paragraphs.length}...</span><span class="cursor"></span>`
+      : '<span style="color:var(--t3)">In attesa del parlato...</span><span class="cursor"></span>';
+  document.getElementById('annLiveList').innerHTML = '';
+  document.getElementById('pauseBadge').classList.add('hidden');
+  document.getElementById('liveBadge').classList.remove('hidden');
+  document.getElementById('pauseBtn').classList.remove('pause-active');
+  document.getElementById('pauseBtn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Pausa`;
+  document.getElementById('glowCircle').style.background = 'radial-gradient(circle,rgba(255,64,85,.1) 0%,transparent 65%)';
+  document.getElementById('pdfProgress').classList.add('hidden');
+
+  // Session banner
+  const banner = document.getElementById('recSessionBanner');
+  document.getElementById('recSessionBannerText').innerHTML =
+    `🔗 Continuazione di: <strong>${esc(prev.title)}</strong> · ${paragraphs.length} paragrafi già trascritti`;
+  banner.classList.remove('hidden');
+
+  // Slides
+  if (slides.length) {
+    document.getElementById('slideLoadBtn').classList.add('hidden');
+    document.getElementById('slidesOpenBtn').classList.remove('hidden');
+    document.getElementById('slidesBadge').textContent = slides.length;
+    buildSvStrip();
+  } else {
+    document.getElementById('slideLoadBtn').classList.remove('hidden');
+    document.getElementById('slidesOpenBtn').classList.add('hidden');
+  }
+
+  buildWaveform(); startTimer(); startAudioCapture();
+}
+
+// ─── HOME ───
+function renderHome() {
+  const totalAnn = sessions.reduce((a,s)=>a+(s.annotations?.length||0),0);
+  const totalSecs = sessions.reduce((a,s)=>a+(s.duration||0),0);
+  document.getElementById('statCount').textContent = sessions.length;
+  document.getElementById('statHours').textContent = (totalSecs/3600).toFixed(1)+'h';
+  document.getElementById('statAnn').textContent = totalAnn;
+  const list = document.getElementById('lessonsList');
+  if (!sessions.length) {
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">🎙</div><div class="empty-text">Nessuna lezione ancora.<br>Premi il pulsante per iniziare.</div></div>`;
+    return;
+  }
+  list.innerHTML = sessions.slice().reverse().map(s=>{
+    const d=new Date(s.date);
+    const ds=d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+    const src = s.source==='gemini'?'🤖 Gemini':s.source==='upload'?'📁 file':'🎙 live';
+    return `<div class="lesson-card" onclick="openLesson('${s.id}')">
+      <div class="lc-top"><div class="lc-title">${esc(s.title)}</div><div class="lc-badge">✓ Salvata</div></div>
+      <div class="lc-course">${esc(s.course||'Corso non specificato')}</div>
+      <div class="lc-meta"><span>${ds}</span><span>${fmtSecs(s.duration)}</span><span>${src}</span><span>${s.paragraphs?.length||0} par.</span><span>${s.annotations?.length||0} note</span><span>${s.pinnedSlides?.length||0} slide</span>${s.sessionsCount>1?`<span>🔗 ${s.sessionsCount} sessioni</span>`:''}</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button onclick="event.stopPropagation();continueRecording('${s.id}')" style="background:rgba(56,232,160,.1);border:1px solid rgba(56,232,160,.25);border-radius:8px;padding:6px 12px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--accent3);cursor:pointer">▶ Continua</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── RECORDING ───
+function startRecording() {
+  continueSessionId = null;
+  recActive=true; recPaused=false; elapsedSecs=0;
+  paragraphs=[]; annotations=[]; pinnedSlides=[];
+  paraAccum=''; allTranscript=''; paraWordCount=0;
+  slides=[]; currentSlideIdx=0; audioChunks=[]; audioBlob=null;
+
+  nav('recording');
+  document.getElementById('timer').textContent='00:00:00';
+  document.getElementById('transcText').innerHTML='<span style="color:var(--t3)">In attesa del parlato...</span><span class="cursor"></span>';
+  document.getElementById('annLiveList').innerHTML='';
+  document.getElementById('courseField').value='';
+  document.getElementById('recSessionBanner').classList.add('hidden');
+  document.getElementById('slideLoadBtn').classList.remove('hidden');
+  document.getElementById('slidesOpenBtn').classList.add('hidden');
+  document.getElementById('pauseBadge').classList.add('hidden');
+  document.getElementById('liveBadge').classList.remove('hidden');
+  document.getElementById('pauseBtn').classList.remove('pause-active');
+  document.getElementById('pauseBtn').innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Pausa`;
+  document.getElementById('glowCircle').style.background='radial-gradient(circle,rgba(255,64,85,.1) 0%,transparent 65%)';
+  document.getElementById('pdfProgress').classList.add('hidden');
+
+  buildWaveform(); startTimer(); startAudioCapture();
+}
+
+function buildWaveform() {
+  const wf=document.getElementById('waveform'); wf.innerHTML='';
+  for(let i=0;i<28;i++){
+    const b=document.createElement('div'); b.className='wb';
+    b.style.cssText=`--h:${Math.floor(Math.random()*32)+6}px;--d:${(0.4+Math.random()*.8).toFixed(2)}s;animation-delay:${(Math.random()*.5).toFixed(2)}s`;
+    wf.appendChild(b);
+  }
+}
+
+function startTimer() {
+  clearInterval(timerInt);
+  timerInt=setInterval(()=>{
+    if(!recPaused){elapsedSecs++;const t=fmtSecs(elapsedSecs);document.getElementById('timer').textContent=t;document.getElementById('svTimer').textContent=t;}
+  },1000);
+}
+
+// Chiede il microfono UNA SOLA VOLTA e lo condivide tra MediaRecorder e SpeechRecognition
+async function startAudioCapture() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+
+    // ── MediaRecorder (salvataggio audio) ──
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    mediaRecorder = new MediaRecorder(stream, {mimeType});
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) audioChunks.push(e.data); };
+    mediaRecorder.start(1000);
+
+    // ── SpeechRecognition (trascrizione live) ──
+    // Nota: SpeechRecognition non accetta stream direttamente — usa il microfono
+    // di sistema internamente. Avviandolo dopo getUserMedia il browser riusa
+    // il permesso già concesso senza mostrare un secondo dialogo.
+    startSpeech();
+
+    // Salva il riferimento allo stream per fermarlo alla fine
+    mediaRecorder._sharedStream = stream;
+
+  } catch(e) {
+    console.warn('Microfono non disponibile:', e);
+    // Avvia comunque la trascrizione (senza registrazione audio)
+    startSpeech();
+  }
+}
+
+// Speech Recognition con buffer persistente (non chiede permesso microfono — lo eredita da startAudioCapture)
+function startSpeech() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('transcText').innerHTML='<span style="color:var(--accent2)">⚠ Web Speech API non supportata. Usa Chrome o Edge.</span>';return;}
+  recognition=new SR(); recognition.lang='it-IT'; recognition.continuous=true; recognition.interimResults=true;
+  let sessionFinal='';
+  recognition.onresult=e=>{
+    if(recPaused)return;
+    let interim='',fc='';
+    for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fc+=t+' ';else interim+=t;}
+    if(fc){
+      sessionFinal+=fc; paraAccum+=fc; allTranscript+=fc;
+      paraWordCount+=fc.trim().split(/\s+/).length;
+      if(paraWordCount>=PARA_WORDS){paragraphs.push({ts:Math.max(0,elapsedSecs-8),text:paraAccum.trim()});paraAccum='';paraWordCount=0;}
+    }
+    const display=paraAccum+interim;
+    document.getElementById('transcText').innerHTML=
+      display.trim()?esc(display)+'<span class="cursor"></span>':
+      sessionFinal.trim()?'<span style="color:var(--t3);font-size:11px">Continua a parlare...</span><span class="cursor"></span>':
+      '<span style="color:var(--t3)">In attesa del parlato...</span><span class="cursor"></span>';
+  };
+  recognition.onerror=e=>{if(e.error==='no-speech'||e.error==='aborted')return;};
+  recognition.onend=()=>{if(recActive&&!recPaused){try{recognition.start();}catch(e){}}};
+  try{recognition.start();}catch(e){}
+}
+
+function togglePause() {
+  recPaused=!recPaused;
+  const btn=document.getElementById('pauseBtn');
+  document.getElementById('liveBadge').classList.toggle('hidden',recPaused);
+  document.getElementById('pauseBadge').classList.toggle('hidden',!recPaused);
+  document.querySelectorAll('.wb').forEach(b=>b.classList.toggle('paused',recPaused));
+  document.getElementById('glowCircle').style.background=recPaused?
+    'radial-gradient(circle,rgba(255,184,48,.08) 0%,transparent 65%)':
+    'radial-gradient(circle,rgba(255,64,85,.1) 0%,transparent 65%)';
+  if(recPaused){
+    btn.classList.add('pause-active');
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>Riprendi`;
+    if(recognition){try{recognition.stop();}catch(e){}}
+    if(mediaRecorder&&mediaRecorder.state==='recording')mediaRecorder.pause();
+  }else{
+    btn.classList.remove('pause-active');
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Pausa`;
+    if(recognition){try{recognition.start();}catch(e){}}
+    if(mediaRecorder&&mediaRecorder.state==='paused')mediaRecorder.resume();
+  }
+  updateSvPauseBtn();
+}
+
+function updateSvPauseBtn(){
+  const btn=document.getElementById('svPauseBtn');
+  btn.innerHTML=recPaused?'<span>▶</span>Riprendi':'<span>⏸</span>Pausa';
+  btn.style.color=recPaused?'var(--accent3)':'var(--amber)';
+}
+
+function stopRecording() {
+  closeSlideViewer();
+  recActive=false; clearInterval(timerInt);
+  if(recognition){try{recognition.stop();recognition.abort();}catch(e){}recognition=null;}
+  if(paraAccum.trim())paragraphs.push({ts:Math.max(0,elapsedSecs-5),text:paraAccum.trim()});
+
+  // Stop MediaRecorder and then save
+  if(mediaRecorder && mediaRecorder.state!=='inactive'){
+    mediaRecorder.onstop = () => {
+      audioBlob = new Blob(audioChunks, {type: mediaRecorder.mimeType});
+      // Ferma i track dello stream condiviso
+      mediaRecorder._sharedStream?.getTracks().forEach(t=>t.stop());
+      finalizeSave();
+    };
+    mediaRecorder.stop();
+  } else {
+    finalizeSave();
+  }
+}
+
+function finalizeSave() {
+  const saveSession = (audioB64, audioMime) => {
+    const prev = continueSessionId ? sessions.find(x => x.id === continueSessionId) : null;
+
+    // If continuing, merge audio: concatenate b64 strings won't work for webm —
+    // instead we keep the new audio as the primary playback source and
+    // store the old one separately so nothing is lost.
+    let finalAudioB64 = audioB64 || null;
+    let finalAudioMime = audioMime || null;
+    let previousAudioB64 = null;
+    let previousAudioMime = null;
+    if (prev && prev.audioB64) {
+      previousAudioB64 = prev.audioB64;
+      previousAudioMime = prev.audioMime;
+      // If no new audio was recorded, keep the old one
+      if (!finalAudioB64) { finalAudioB64 = prev.audioB64; finalAudioMime = prev.audioMime; }
+    }
+
+    const session = {
+      id: continueSessionId || ('lesson_' + Date.now()),
+      title: generateTitle(document.getElementById('courseField').value),
+      course: document.getElementById('courseField').value.trim() || 'Corso non specificato',
+      date: prev ? prev.date : new Date().toISOString(), // keep original date
+      updatedAt: new Date().toISOString(),
+      duration: elapsedSecs,
+      paragraphs: correctParagraphs(paragraphs),
+      annotations: [...annotations],
+      fullTranscript: applyCorrections(allTranscript.trim()),
+      pinnedSlides: [...pinnedSlides],
+      slides: slides.map(s => ({dataUrl:s.dataUrl, name:s.name, annotations:s.annotations||null})),
+      audioB64: finalAudioB64,
+      audioMime: finalAudioMime,
+      previousAudioB64,
+      previousAudioMime,
+      continuedFrom: prev ? (prev.continuedFrom || prev.id) : null,
+      sessionsCount: prev ? ((prev.sessionsCount || 1) + 1) : 1,
+      aiSummary: prev?.aiSummary || null,
+      aiSummaryDate: prev?.aiSummaryDate || null,
+      source: prev?.source || undefined
+    };
+
+    // Replace or add session
+    const idx = sessions.findIndex(x => x.id === session.id);
+    if (idx >= 0) sessions[idx] = session;
+    else sessions.push(session);
+
+    currentDetailId = session.id;
+    continueSessionId = null;
+    autoSaveSession(session);
+    nav('detail');
+    renderDetail(session);
+  };
+
+  if (audioBlob && audioBlob.size > 0) {
+    const reader = new FileReader();
+    reader.onload = e => saveSession(e.target.result.split(',')[1], audioBlob.type);
+    reader.readAsDataURL(audioBlob);
+  } else {
+    saveSession(null, null);
+  }
+}
+
+function confirmStopBack(){
+  closeSlideViewer();
+  const cleanup = () => {
+    recActive=false; clearInterval(timerInt);
+    if(recognition){try{recognition.stop();}catch(e){}}
+    if(mediaRecorder){try{mediaRecorder.stop();}catch(e){}}
+    mediaRecorder?._sharedStream?.getTracks().forEach(t=>t.stop());
+  };
+  if(elapsedSecs<3){cleanup();nav('home');return;}
+  if(confirm('Tornare indietro? La registrazione andrà persa.')){cleanup();nav('home');}
+}
+
+// ─── SLIDES LOADING ───
+async function loadSlides(event) {
+  const files=Array.from(event.target.files); event.target.value='';
+  if(!files.length)return;
+  slides=[]; currentSlideIdx=0;
+  const hasPdf=files.some(f=>f.name.toLowerCase().endsWith('.pdf'));
+  if(hasPdf){document.getElementById('pdfProgress').classList.remove('hidden');document.getElementById('pdfBarFill').style.width='0%';}
+  const pdfs=files.filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+  const images=files.filter(f=>!f.name.toLowerCase().endsWith('.pdf')&&f.type.startsWith('image/'));
+  let totalPages=0, loaded=0;
+  const pdfDocs=[];
+  for(const pdf of pdfs){const ab=await readFileAsArrayBuffer(pdf);const doc=await pdfjsLib.getDocument({data:ab}).promise;pdfDocs.push({doc,name:pdf.name});totalPages+=doc.numPages;}
+  totalPages+=images.length;
+  const updateProg=()=>{loaded++;const pct=Math.round((loaded/totalPages)*100);document.getElementById('pdfBarFill').style.width=pct+'%';document.getElementById('pdfProgressText').textContent=`Pagina ${loaded} di ${totalPages}`;};
+  for(const {doc,name} of pdfDocs){for(let p=1;p<=doc.numPages;p++){const page=await doc.getPage(p);const vp=page.getViewport({scale:1.8});const canvas=document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;slides.push({dataUrl:canvas.toDataURL('image/jpeg',.85),name:`${name} — p.${p}`,annotations:null});updateProg();}}
+  await Promise.all(images.map((file,i)=>new Promise(res=>{const reader=new FileReader();reader.onload=e=>{slides.push({dataUrl:e.target.result,name:file.name,annotations:null});updateProg();res();};reader.readAsDataURL(file);})));
+  document.getElementById('pdfProgress').classList.add('hidden');
+  document.getElementById('slideLoadBtn').classList.add('hidden');
+  document.getElementById('slidesOpenBtn').classList.remove('hidden');
+  document.getElementById('slidesBadge').textContent=slides.length;
+  buildSvStrip();
+  showToast(`✅ ${slides.length} slide caricate!`);
+}
+
+function readFileAsArrayBuffer(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsArrayBuffer(file);});}
+
+// ─── SLIDE VIEWER ───
+function openSlideViewer(){if(!slides.length)return;document.getElementById('slideViewer').classList.remove('hidden');renderSvSlide();updateSvPauseBtn();}
+function closeSlideViewer(){document.getElementById('slideViewer').classList.add('hidden');}
+
+function buildSvStrip(){
+  const strip=document.getElementById('svStrip');
+  strip.innerHTML=slides.map((s,i)=>{
+    const isPinned=pinnedSlides.some(p=>p.slideIdx===i);
+    return `<img class="sv-thumb${i===currentSlideIdx?' active':''}${isPinned?' pinned-thumb':''}" src="${s.dataUrl}" onclick="svGoTo(${i})">`;
+  }).join('');
+}
+
+function renderSvSlide(){
+  if(!slides.length)return;
+  const s=slides[currentSlideIdx];
+  const img=document.getElementById('svImg');
+  img.src=s.dataUrl;
+  img.onload=()=>resizeCanvas();
+
+  document.getElementById('svCounter').textContent=`${currentSlideIdx+1} / ${slides.length} — ${esc(s.name)}`;
+  document.querySelectorAll('.sv-thumb').forEach((t,i)=>t.classList.toggle('active',i===currentSlideIdx));
+  const active=document.querySelector('.sv-thumb.active');
+  if(active)active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  const pinsForSlide=pinnedSlides.filter(p=>p.slideIdx===currentSlideIdx);
+  const pinBtn=document.getElementById('svPinBtn');
+  pinBtn.classList.toggle('pinned',pinsForSlide.length>0);
+  pinBtn.innerHTML=pinsForSlide.length>0?`<span>✅</span>${pinsForSlide.length} agganci`:'<span>📌</span>Aggancia';
+  document.getElementById('svPinIndicator').textContent=pinsForSlide.length>0
+    ? pinsForSlide.map(p=>`📌 ${fmtSecs(p.ts)}`).join('  ') : '';
+
+  // Restore canvas annotations if any
+  const canvas=document.getElementById('svCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(s.annotations){
+    const annotImg=new Image();
+    annotImg.onload=()=>ctx.drawImage(annotImg,0,0,canvas.width,canvas.height);
+    annotImg.src=s.annotations;
+  }
+  strokeHistory=[];
+}
+
+function resizeCanvas(){
+  const img=document.getElementById('svImg');
+  const canvas=document.getElementById('svCanvas');
+  const wrap=document.getElementById('svCanvasWrap');
+  const wR=wrap.clientWidth/img.naturalWidth, hR=wrap.clientHeight/img.clientHeight;
+  canvas.width=wrap.clientWidth; canvas.height=wrap.clientHeight;
+  // Restore after resize
+  if(slides[currentSlideIdx]?.annotations){
+    const ctx=canvas.getContext('2d');
+    const annotImg=new Image();
+    annotImg.onload=()=>ctx.drawImage(annotImg,0,0,canvas.width,canvas.height);
+    annotImg.src=slides[currentSlideIdx].annotations;
+  }
+}
+
+function svPrev(){if(currentSlideIdx>0){saveCanvasToSlide();currentSlideIdx--;renderSvSlide();}}
+function svNext(){if(currentSlideIdx<slides.length-1){saveCanvasToSlide();currentSlideIdx++;renderSvSlide();}}
+function svGoTo(i){saveCanvasToSlide();currentSlideIdx=i;renderSvSlide();}
+
+function saveCanvasToSlide(){
+  const canvas=document.getElementById('svCanvas');
+  // Only save if something was drawn (check if canvas has content)
+  const ctx=canvas.getContext('2d');
+  const data=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const hasContent=data.data.some(v=>v!==0);
+  if(hasContent) slides[currentSlideIdx].annotations=canvas.toDataURL('image/png');
+}
+
+// Touch swipe
+let touchStartX=0;
+document.getElementById('svCanvasWrap').addEventListener('touchstart',e=>{if(e.touches.length===1&&drawTool!=='pen'&&drawTool!=='highlight'&&drawTool!=='erase')touchStartX=e.touches[0].clientX;},{passive:true});
+document.getElementById('svCanvasWrap').addEventListener('touchend',e=>{
+  if(e.changedTouches[0].clientX-touchStartX>60)svPrev();
+  else if(touchStartX-e.changedTouches[0].clientX>60)svNext();
+},{passive:true});
+
+function pinCurrentSlide(){
+  if(!slides.length)return;
+  // Evita duplicati entro 5 secondi sullo stesso timestamp
+  const tooClose = pinnedSlides.some(p=>p.slideIdx===currentSlideIdx && Math.abs(p.ts-elapsedSecs)<5);
+  if(tooClose){ showToast('⚠ Già agganciata pochi secondi fa'); return; }
+  pinnedSlides.push({slideIdx:currentSlideIdx, ts:elapsedSecs, slideName:slides[currentSlideIdx].name});
+  pinnedSlides.sort((a,b)=>a.ts-b.ts);
+  buildSvStrip(); renderSvSlide();
+  const count = pinnedSlides.filter(p=>p.slideIdx===currentSlideIdx).length;
+  showToast(`📌 Slide ${currentSlideIdx+1} agganciata a ${fmtSecs(elapsedSecs)}${count>1?' (aggancio '+count+')':''}`);
+}
+
+function toggleSvAnnBar(){const bar=document.getElementById('svAnnBar');bar.classList.toggle('hidden');if(!bar.classList.contains('hidden'))document.getElementById('svAnnInput').focus();}
+function submitSvAnn(){const val=document.getElementById('svAnnInput').value.trim();if(!val)return;annotations.push({ts:elapsedSecs,text:val,photoDataUrl:null});document.getElementById('svAnnInput').value='';document.getElementById('svAnnBar').classList.add('hidden');renderAnnLive('live');showToast('✏️ Annotazione salvata');}
+document.getElementById('svAnnInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitSvAnn();});
+
+// ─── DRAWING ───
+function setDrawTool(tool){
+  drawTool=tool;
+  ['pen','highlight','text','erase'].forEach(t=>{document.getElementById('tool'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tool);});
+  document.getElementById('textInputWrap').classList.toggle('hidden',tool!=='text');
+  const canvas=document.getElementById('svCanvas');
+  canvas.style.cursor=tool==='erase'?'cell':tool==='text'?'text':'crosshair';
+}
+
+function setColor(c){
+  drawColor=c;
+  document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('active-color'));
+  const map={'#ffffff':'colW','#ff4055':'colR','#38e8a0':'colG','#ffb830':'colY','#5b5fff':'colB'};
+  if(map[c])document.getElementById(map[c]).classList.add('active-color');
+}
+
+function setSize(s,id){
+  drawSize=s;
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function undoStroke(){
+  const canvas=document.getElementById('svCanvas');
+  const ctx=canvas.getContext('2d');
+  if(strokeHistory.length>0){
+    ctx.putImageData(strokeHistory.pop(),0,0);
+    slides[currentSlideIdx].annotations=canvas.toDataURL('image/png');
+  } else {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    slides[currentSlideIdx].annotations=null;
+  }
+}
+
+function placeText(){
+  const val=document.getElementById('svTextInput').value.trim(); if(!val)return;
+  const canvas=document.getElementById('svCanvas'), ctx=canvas.getContext('2d');
+  saveStrokeHistory();
+  ctx.font=`bold ${drawSize*6+12}px Syne,sans-serif`;
+  ctx.fillStyle=drawColor;
+  ctx.fillText(val, canvas.width*0.1, canvas.height*0.5);
+  document.getElementById('svTextInput').value='';
+  slides[currentSlideIdx].annotations=canvas.toDataURL('image/png');
+}
+
+function saveStrokeHistory(){
+  const canvas=document.getElementById('svCanvas');
+  const ctx=canvas.getContext('2d');
+  strokeHistory.push(ctx.getImageData(0,0,canvas.width,canvas.height));
+  if(strokeHistory.length>20)strokeHistory.shift();
+}
+
+// Canvas drawing events
+const svCanvas=document.getElementById('svCanvas');
+
+function getCanvasPos(e, canvas){
+  const rect=canvas.getBoundingClientRect();
+  const clientX=e.touches?e.touches[0].clientX:e.clientX;
+  const clientY=e.touches?e.touches[0].clientY:e.clientY;
+  return {x:(clientX-rect.left),y:(clientY-rect.top)};
+}
+
+svCanvas.addEventListener('mousedown', startDraw);
+svCanvas.addEventListener('mousemove', draw);
+svCanvas.addEventListener('mouseup', endDraw);
+svCanvas.addEventListener('mouseleave', endDraw);
+svCanvas.addEventListener('touchstart', e=>{if(drawTool==='pen'||drawTool==='highlight'||drawTool==='erase'){e.preventDefault();startDraw(e);}},{passive:false});
+svCanvas.addEventListener('touchmove', e=>{if(isDrawing){e.preventDefault();draw(e);}},{passive:false});
+svCanvas.addEventListener('touchend', endDraw);
+
+function startDraw(e){
+  if(drawTool==='text')return;
+  isDrawing=true;
+  const canvas=document.getElementById('svCanvas');
+  const pos=getCanvasPos(e,canvas);
+  lastX=pos.x; lastY=pos.y;
+  saveStrokeHistory();
+}
+
+function draw(e){
+  if(!isDrawing)return;
+  const canvas=document.getElementById('svCanvas');
+  const ctx=canvas.getContext('2d');
+  const pos=getCanvasPos(e,canvas);
+  ctx.beginPath();
+  if(drawTool==='highlight'){
+    ctx.globalAlpha=0.3; ctx.strokeStyle=drawColor; ctx.lineWidth=drawSize*4;
+  }else if(drawTool==='erase'){
+    ctx.globalCompositeOperation='destination-out'; ctx.lineWidth=drawSize*8; ctx.strokeStyle='rgba(0,0,0,1)';
+  }else{
+    ctx.globalAlpha=1; ctx.strokeStyle=drawColor; ctx.lineWidth=drawSize;
+  }
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.moveTo(lastX,lastY); ctx.lineTo(pos.x,pos.y); ctx.stroke();
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+  lastX=pos.x; lastY=pos.y;
+}
+
+function endDraw(){
+  if(!isDrawing)return;
+  isDrawing=false;
+  saveCanvasToSlide();
+}
+
+// ─── ANNOTATIONS ───
+function addAnnotation(mode){
+  const id=mode==='live'?'annInput':'uploadAnnInput';
+  const text=document.getElementById(id)?.value.trim(); if(!text)return;
+  const ts=mode==='live'?elapsedSecs:0;
+  if(mode==='live')annotations.push({ts,text,photoDataUrl:null});
+  document.getElementById(id).value=''; renderAnnLive(mode);
+}
+
+function handlePhoto(event,mode){
+  const file=event.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const ts=mode==='live'?elapsedSecs:0;
+    const note=document.getElementById(mode==='live'?'annInput':'uploadAnnInput')?.value.trim();
+    if(mode==='live')annotations.push({ts,text:note||'📷 Foto',photoDataUrl:e.target.result});
+    document.getElementById(mode==='live'?'annInput':'uploadAnnInput').value='';
+    renderAnnLive(mode);
+  };
+  reader.readAsDataURL(file); event.target.value='';
+}
+
+function renderAnnLive(mode){
+  const list=mode==='live'?annotations:[];
+  const id=mode==='live'?'annLiveList':'uploadAnnList';
+  const el=document.getElementById(id); if(!el)return;
+  el.innerHTML=list.slice(-5).reverse().map(a=>`
+    <div class="ann-item"><span class="ann-ts">${fmtSecs(a.ts)}</span>${a.photoDataUrl?`<img src="${a.photoDataUrl}" class="ann-photo-thumb">`:''}
+    <span class="ann-text">${esc(a.text)}</span></div>`).join('');
+}
+
+document.getElementById('annInput').addEventListener('keydown',e=>{if(e.key==='Enter')addAnnotation('live');});
+
+// ─── AUDIO UPLOAD + GEMINI ───
+function resetUploadScreen(){
+  uploadAudioFile=null; uploadSlideFiles=[]; uploadSlides=[];
+  document.getElementById('uploadCourseField').value='';
+  document.getElementById('step1sub').textContent='Seleziona un file audio da trascrivere';
+  document.getElementById('step1num').className='step-num active';
+  document.getElementById('step2sub').textContent='PDF o immagini delle slide del corso';
+  document.getElementById('step2num').className='step-num';
+  document.getElementById('step3num').className='step-num';
+  document.getElementById('analyzeBtn').disabled=true;
+  document.getElementById('geminiProgress').classList.add('hidden');
+  if(geminiApiKey)document.getElementById('uploadGeminiKey').value=geminiApiKey;
+}
+
+function selectAudioFile(event){
+  const file=event.target.files[0]; if(!file)return; event.target.value='';
+  uploadAudioFile=file;
+  document.getElementById('step1sub').textContent=`✅ ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+  document.getElementById('step1num').className='step-num done';
+  document.getElementById('step2num').className='step-num active';
+  document.getElementById('step3num').className='step-num active';
+  document.getElementById('analyzeBtn').disabled=false;
+}
+
+async function selectSlideFiles(event){
+  const files=Array.from(event.target.files); event.target.value=''; if(!files.length)return;
+  uploadSlideFiles=files; uploadSlides=[];
+  document.getElementById('step2sub').textContent=`Elaborazione ${files.length} file...`;
+  // Process slides
+  const pdfs=files.filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+  const images=files.filter(f=>!f.name.toLowerCase().endsWith('.pdf'));
+  for(const pdf of pdfs){const ab=await readFileAsArrayBuffer(pdf);const doc=await pdfjsLib.getDocument({data:ab}).promise;for(let p=1;p<=doc.numPages;p++){const page=await doc.getPage(p);const vp=page.getViewport({scale:1.5});const canvas=document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;uploadSlides.push({dataUrl:canvas.toDataURL('image/jpeg',.8),name:`${pdf.name} p.${p}`});}}
+  for(const file of images){await new Promise(res=>{const reader=new FileReader();reader.onload=e=>{uploadSlides.push({dataUrl:e.target.result,name:file.name});res();};reader.readAsDataURL(file);});}
+  document.getElementById('step2sub').textContent=`✅ ${uploadSlides.length} slide pronte`;
+  document.getElementById('step2num').className='step-num done';
+}
+
+function cancelUpload(){uploadAudioFile=null;uploadSlideFiles=[];uploadSlides=[];nav('home');}
+
+async function startGeminiAnalysis(){
+  const key=document.getElementById('uploadGeminiKey').value.trim()||geminiApiKey;
+  if(!key){showToast('Inserisci la tua API key Gemini!');return;}
+  if(!uploadAudioFile){showToast('Seleziona un file audio!');return;}
+  geminiApiKey=key;
+
+  document.getElementById('analyzeBtn').disabled=true;
+  const prog=document.getElementById('geminiProgress');
+  prog.classList.remove('hidden');
+  setGeminiProg(5,'Lettura del file audio...');
+
+  const course=document.getElementById('uploadCourseField').value.trim();
+
+  try {
+    // Read audio as base64
+    setGeminiProg(10,'Conversione audio in base64...');
+    const audioB64 = await fileToBase64(uploadAudioFile);
+    const audioSize = uploadAudioFile.size / 1024 / 1024; // MB
+
+    let audioUri = null;
+    let audioMimeType = uploadAudioFile.type || 'audio/webm';
+
+    // If > 18MB use Files API, else inline
+    if(audioSize > 18){
+      setGeminiProg(20,'File grande: upload tramite Files API...');
+      audioUri = await uploadToFilesAPI(uploadAudioFile, key, (p)=>setGeminiProg(20+p*0.4, `Upload: ${Math.round(p*100)}%`));
+      setGeminiProg(65,'Audio caricato. Invio a Gemini...');
+    } else {
+      setGeminiProg(40,'Invio audio a Gemini...');
+    }
+
+    // Build slide context (send first 3 slides as images inline if present)
+    const slideParts = [];
+    if(uploadSlides.length > 0){
+      setGeminiProg(55,'Preparazione slide...');
+      const maxSlides = Math.min(uploadSlides.length, 6);
+      for(let i=0;i<maxSlides;i++){
+        const b64 = uploadSlides[i].dataUrl.split(',')[1];
+        slideParts.push({inlineData:{mimeType:'image/jpeg',data:b64}});
+        slideParts.push({text:`[Slide ${i+1}: ${uploadSlides[i].name}]`});
+      }
+    }
+
+    setGeminiProg(65,'Analisi AI in corso...');
+
+    const audioPart = audioUri
+      ? {fileData:{mimeType:audioMimeType,fileUri:audioUri}}
+      : {inlineData:{mimeType:audioMimeType,data:audioB64}};
+
+    const promptText = `Sei un assistente universitario esperto. Analizza questa registrazione audio di una lezione${course?' di "'+course+'"':''}.
+${uploadSlides.length>0?`Hai a disposizione ${Math.min(uploadSlides.length,6)} slide del corso come riferimento visivo.`:''}
+
+Il tuo compito è:
+1. Trascrivere fedelmente il parlato in italiano, dividendo in paragrafi logici con timestamp approssimativi in formato [MM:SS]
+2. Generare un riassunto strutturato completo
+
+Rispondi con questo formato ESATTO:
+
+### TRASCRIZIONE ###
+[00:00] (testo primo paragrafo)
+[MM:SS] (testo secondo paragrafo)
+... (continua per tutta la lezione)
+
+### RIASSUNTO ###
+
+## 📋 Riassunto Generale
+(3-5 frasi)
+
+## 🎯 Argomenti Principali
+(lista)
+
+## 💡 Concetti Chiave
+(massimo 8, con breve spiegazione)
+
+## 🔗 Slide e Argomenti
+${uploadSlides.length>0?'(collega le slide ai temi trattati)':'(nessuna slide disponibile)'}
+
+## ❓ Possibili Domande d\'Esame
+(5-7 domande)
+
+## 📖 Termini da Studiare
+(glossario)`;
+
+    const parts = [
+      {text: promptText},
+      audioPart,
+      ...slideParts
+    ];
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts}],generationConfig:{temperature:0.2,maxOutputTokens:8000}})
+    });
+
+    setGeminiProg(90,'Elaborazione risposta...');
+
+    if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'Errore API Gemini');}
+    const data=await res.json();
+    const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(!text)throw new Error('Risposta vuota da Gemini');
+
+    setGeminiProg(95,'Salvataggio lezione...');
+
+    // Parse transcript and summary from response
+    const {parsedParagraphs, summaryText} = parseGeminiResponse(text);
+
+    const session={
+      id:'lesson_'+Date.now(),
+      title:generateTitle(course),
+      course:course||'Corso non specificato',
+      date:new Date().toISOString(),
+      duration:0, // unknown from audio analysis
+      paragraphs:correctParagraphs(parsedParagraphs),
+      annotations:[],
+      fullTranscript:parsedParagraphs.map(p=>p.text).join(' '),
+      pinnedSlides:[],
+      slides:[...uploadSlides],
+      aiSummary:summaryText,
+      aiSummaryDate:new Date().toISOString(),
+      source:'gemini',
+      audioB64: await fileToBase64(uploadAudioFile),
+      audioMime: audioMimeType
+    };
+
+    sessions.push(session); currentDetailId=session.id;
+    setGeminiProg(100,'Completato!');
+    setTimeout(()=>{autoSaveSession(session); nav('detail'); renderDetail(session);},600);
+
+  } catch(err) {
+    document.getElementById('geminiProgress').classList.add('hidden');
+    document.getElementById('analyzeBtn').disabled=false;
+    showToast('❌ '+err.message.slice(0,60));
+    console.error(err);
+  }
+}
+
+function setGeminiProg(pct, label){
+  document.getElementById('geminiProgFill').style.width=pct+'%';
+  document.getElementById('geminiProgLabel').textContent=label;
+  document.getElementById('geminiProgStatus').textContent=Math.round(pct)+'% completato';
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const reader=new FileReader();
+    reader.onload=e=>res(e.target.result.split(',')[1]);
+    reader.onerror=rej;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadToFilesAPI(file, key, onProgress){
+  // Initiate resumable upload
+  const initRes = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=resumable&key=${key}`,{
+    method:'POST',
+    headers:{'X-Goog-Upload-Protocol':'resumable','X-Goog-Upload-Command':'start',
+      'X-Goog-Upload-Header-Content-Length':file.size,'X-Goog-Upload-Header-Content-Type':file.type,
+      'Content-Type':'application/json'},
+    body:JSON.stringify({file:{display_name:file.name}})
+  });
+  if(!initRes.ok)throw new Error('Impossibile iniziare l\'upload del file');
+  const uploadUrl=initRes.headers.get('x-goog-upload-url');
+  if(!uploadUrl)throw new Error('URL di upload non ricevuto');
+
+  // Upload file in chunks
+  const chunkSize=5*1024*1024; // 5MB chunks
+  let offset=0;
+  const arrayBuffer=await file.arrayBuffer();
+
+  while(offset<file.size){
+    const chunk=arrayBuffer.slice(offset,offset+chunkSize);
+    const isLast=offset+chunkSize>=file.size;
+    const command=isLast?'upload, finalize':'upload';
+    const uploadRes=await fetch(uploadUrl,{
+      method:'POST',
+      headers:{'Content-Length':chunk.byteLength,'X-Goog-Upload-Offset':offset,'X-Goog-Upload-Command':command,'Content-Type':file.type},
+      body:chunk
+    });
+    if(isLast){
+      if(!uploadRes.ok)throw new Error('Upload fallito');
+      const fileInfo=await uploadRes.json();
+      onProgress&&onProgress(1);
+      return fileInfo.file?.uri||fileInfo.uri;
+    }
+    offset+=chunkSize;
+    onProgress&&onProgress(offset/file.size);
+  }
+}
+
+function parseGeminiResponse(text){
+  const transcriptMatch = text.match(/###\s*TRASCRIZIONE\s*###([\s\S]*?)###\s*RIASSUNTO\s*###/i);
+  const summaryMatch = text.match(/###\s*RIASSUNTO\s*###([\s\S]*?)$/i);
+
+  let parsedParagraphs = [];
+  if(transcriptMatch){
+    const lines = transcriptMatch[1].trim().split('\n').filter(l=>l.trim());
+    lines.forEach(line=>{
+      const m=line.match(/^\[(\d+):(\d+)\]\s*(.*)/);
+      if(m){
+        const ts=parseInt(m[1])*60+parseInt(m[2]);
+        parsedParagraphs.push({ts, text:m[3].trim()});
+      } else if(parsedParagraphs.length>0 && line.trim()){
+        parsedParagraphs[parsedParagraphs.length-1].text+=' '+line.trim();
+      }
+    });
+  }
+
+  // Fallback: split by paragraphs if no timestamp format
+  if(!parsedParagraphs.length){
+    const rawText = transcriptMatch?transcriptMatch[1].trim():text.split('###')[0].trim();
+    rawText.split(/\n{2,}/).filter(p=>p.trim()).forEach((p,i)=>{
+      parsedParagraphs.push({ts:i*60, text:p.replace(/^\[\d+:\d+\]\s*/,'').trim()});
+    });
+  }
+
+  const summaryText = summaryMatch ? summaryMatch[1].trim() : text;
+  return {parsedParagraphs, summaryText};
+}
+
+// ─── DETAIL ───
+function openLesson(id){const s=sessions.find(x=>x.id===id);if(!s)return;currentDetailId=id;nav('detail');renderDetail(s);}
+
+function renderDetail(s){
+  document.getElementById('detailTitle').textContent=s.title;
+  document.getElementById('detailCourse').textContent=s.course;
+  const d=new Date(s.date);
+  let metaStr = d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' · '+fmtSecs(s.duration);
+  if (s.sessionsCount > 1) metaStr += ` · 🔗 ${s.sessionsCount} sessioni`;
+  document.getElementById('detailMeta').textContent = metaStr;
+
+  // Audio player
+  const aw=document.getElementById('audioReviewWrap');
+  if(s.audioB64 && s.audioMime){
+    aw.innerHTML=`
+      <div class="audio-review-wrap">
+        <div class="audio-review-title">🎵 Riproduci la registrazione</div>
+        <div class="review-progress-row">
+          <span class="rev-time mono" id="revCur">0:00</span>
+          <div class="review-progress-bg" id="revProgBg" onclick="seekReview(event)">
+            <div class="review-progress-fill" id="revProgFill"></div>
+          </div>
+          <span class="rev-time mono" id="revDur">—</span>
+        </div>
+        <div class="review-ctrl-row">
+          <button class="rev-btn" onclick="skipReview(-10)">−10s</button>
+          <button class="rev-btn rev-play" id="revPlayBtn" onclick="toggleReview()">▶ Play</button>
+          <button class="rev-btn" onclick="skipReview(10)">+10s</button>
+          <button class="rev-btn" onclick="skipReview(-60)" title="−1 min">−1m</button>
+          <button class="rev-btn" onclick="skipReview(60)" title="+1 min">+1m</button>
+        </div>
+      </div>`;
+    reviewAudioEl=document.getElementById('reviewAudio');
+    reviewAudioEl.src=`data:${s.audioMime};base64,${s.audioB64}`;
+    reviewAudioEl.load();
+    reviewAudioEl.onloadedmetadata=()=>{document.getElementById('revDur').textContent=fmtSecs(Math.floor(reviewAudioEl.duration));};
+    reviewAudioEl.ontimeupdate=()=>{
+      const cur=reviewAudioEl.currentTime,dur=reviewAudioEl.duration||1;
+      document.getElementById('revCur').textContent=fmtSecs(Math.floor(cur));
+      document.getElementById('revProgFill').style.width=Math.min(100,(cur/dur)*100).toFixed(1)+'%';
+    };
+    reviewAudioEl.onended=()=>{document.getElementById('revPlayBtn').textContent='▶ Play';};
+  } else {
+    aw.innerHTML='';
+  }
+
+  // Previous session audio (if continued)
+  const prevAw = document.getElementById('prevAudioWrap');
+  if (s.previousAudioB64 && s.previousAudioMime) {
+    prevAw.innerHTML = `
+      <div class="audio-review-wrap" style="border-color:rgba(56,232,160,.2);margin-bottom:10px">
+        <div class="audio-review-title" style="color:var(--accent3)">🔗 Audio sessione precedente</div>
+        <div class="review-progress-row">
+          <span class="rev-time mono" id="prevCur">0:00</span>
+          <div class="review-progress-bg" id="prevProgBg" onclick="seekPrevAudio(event)">
+            <div class="review-progress-fill" id="prevProgFill" style="background:var(--accent3)"></div>
+          </div>
+          <span class="rev-time mono" id="prevDur">—</span>
+        </div>
+        <div class="review-ctrl-row">
+          <button class="rev-btn" onclick="skipPrevAudio(-10)">−10s</button>
+          <button class="rev-btn rev-play" id="prevPlayBtn" style="background:var(--accent3);border-color:var(--accent3)" onclick="togglePrevAudio()">▶ Play</button>
+          <button class="rev-btn" onclick="skipPrevAudio(10)">+10s</button>
+        </div>
+      </div>`;
+    prevAudioEl = document.getElementById('prevAudio');
+    prevAudioEl.src = `data:${s.previousAudioMime};base64,${s.previousAudioB64}`;
+    prevAudioEl.load();
+    prevAudioEl.onloadedmetadata = () => { document.getElementById('prevDur').textContent = fmtSecs(Math.floor(prevAudioEl.duration)); };
+    prevAudioEl.ontimeupdate = () => {
+      const cur=prevAudioEl.currentTime, dur=prevAudioEl.duration||1;
+      document.getElementById('prevCur').textContent = fmtSecs(Math.floor(cur));
+      document.getElementById('prevProgFill').style.width = Math.min(100,(cur/dur)*100).toFixed(1)+'%';
+    };
+    prevAudioEl.onended = () => { document.getElementById('prevPlayBtn').textContent = '▶ Play'; };
+  } else {
+    prevAw.innerHTML = '';
+  }
+  const pw=document.getElementById('paragraphsWrap');
+  if(!s.paragraphs?.length){
+    pw.innerHTML=`<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">Nessuna trascrizione.</div></div>`;
+  }else{
+    pw.innerHTML=s.paragraphs.map((p,i)=>{
+      let html=esc(p.text);
+      if(p.keywords?.length){p.keywords.forEach(kw=>{const re=new RegExp('\\b('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')\\b','gi');html=html.replace(re,'<span class="keyword">$1</span>');});}
+      const jumpBtn=s.audioB64?`<button onclick="seekReviewTo(${p.ts})" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:0 0 0 6px" title="Vai a questo punto">▶</button>`:'';
+      return `<div class="paragraph-block"><div class="para-header"><span class="para-ts">⏱ ${fmtSecs(p.ts)}${jumpBtn}</span><span class="para-len">${p.text.split(/\s+/).length} parole</span></div><div class="para-text">${html}</div></div>`;
+    }).join('');
+  }
+
+  // Slides detail
+  const sw=document.getElementById('slidesDetailWrap');
+  if(!s.slides?.length){
+    sw.innerHTML=`<div class="empty-state"><div class="empty-icon">📑</div><div class="empty-text">Nessuna slide caricata.</div></div>`;
+  } else {
+    const pins=(s.pinnedSlides||[]).slice().sort((a,b)=>a.ts-b.ts);
+    const hasPins=pins.length>0;
+    const hasAudio=!!s.audioB64;
+
+    // Build pin entries with endTs (next pin start, regardless of slideIdx)
+    const pinEntries=pins.map((pin,i)=>({
+      ...pin,
+      endTs: pins[i+1]?.ts ?? (s.duration||null),
+      globalOrder: i+1
+    }));
+
+    sw.innerHTML=`
+      <button class="study-open-btn" onclick="openStudyViewer('${s.id}')">
+        📑 Rivedi Slide${hasPins?' con Audio':''}
+        <span style="font-size:11px;opacity:.6">${s.slides.length} slide${hasPins?' · '+pins.length+' agganci':''}</span>
+      </button>`
+      + (hasPins
+        // Group by slideIdx in NATURAL order, preserving all pin occurrences
+        ? s.slides.map((slide,i)=>{
+            const myPins=pinEntries.filter(p=>p.slideIdx===i);
+            if(!myPins.length)return'';
+            return myPins.map((pin,j)=>`
+              <div class="slide-pin-card">
+                <div class="spc-header">
+                  <span class="spc-num">Slide ${i+1}${myPins.length>1?' (aggancio '+(j+1)+'/'+myPins.length+')':''} — ${esc(pin.slideName||'')}</span>
+                  <span class="spc-range">${fmtSecs(pin.ts)}${pin.endTs!=null?' → '+fmtSecs(pin.endTs):''}</span>
+                </div>
+                <div class="spc-img-wrap">
+                  <img class="spc-img" src="${slide.dataUrl}">
+                  ${slide.annotations?`<img style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none" src="${slide.annotations}">`:''}
+                  ${hasAudio&&pin.endTs!=null?`<button class="spc-play-btn" onclick="playSliceAudio(${pin.ts},${pin.endTs})" title="Riproduci da ${fmtSecs(pin.ts)}">▶</button>`:''}
+                </div>
+                <div class="spc-footer">
+                  <span>🎙 ${pin.globalOrder}° nella registrazione · dal minuto ${fmtSecs(pin.ts)}</span>
+                  ${hasAudio&&pin.endTs!=null?'<span style="color:var(--accent);font-size:10px">▶ Clicca per ascoltare</span>':''}
+                </div>
+              </div>`).join('');
+          }).join('')
+        : `<div class="empty-state"><div class="empty-icon">📌</div><div class="empty-text">Nessuna slide agganciata.<br>Usa 📌 Aggancia durante la registrazione.</div></div>`
+      );
+  }
+
+  // Annotations
+  const annw=document.getElementById('annDetailWrap');
+  if(!s.annotations?.length){
+    annw.innerHTML=`<div class="empty-state"><div class="empty-icon">📌</div><div class="empty-text">Nessuna annotazione.</div></div>`;
+  }else{
+    annw.innerHTML=s.annotations.map(a=>`<div class="ann-detail-item"><div class="ann-detail-ts">${fmtSecs(a.ts)}</div><div><div class="ann-detail-note">${esc(a.text)}</div>${a.photoDataUrl?`<img src="${a.photoDataUrl}" class="ann-detail-img">`:''}  </div></div>`).join('');
+  }
+
+  // AI tab
+  document.getElementById('aiResult').innerHTML='';
+  if(s.aiSummary)document.getElementById('aiResult').innerHTML=`<div class="ai-result">${mdToHtml(s.aiSummary)}</div>`;
+  if(geminiApiKey)document.getElementById('geminiKeyInput').value=geminiApiKey;
+
+  switchTab('transcription');
+}
+
+// Audio review controls
+function toggleReview(){
+  if(!reviewAudioEl)return;
+  if(reviewAudioEl.paused){reviewAudioEl.play();document.getElementById('revPlayBtn').textContent='⏸ Pausa';}
+  else{reviewAudioEl.pause();document.getElementById('revPlayBtn').textContent='▶ Play';}
+}
+function skipReview(s){if(reviewAudioEl)reviewAudioEl.currentTime=Math.max(0,Math.min(reviewAudioEl.duration,reviewAudioEl.currentTime+s));}
+function seekReview(e){if(!reviewAudioEl||!reviewAudioEl.duration)return;const r=document.getElementById('revProgBg').getBoundingClientRect();reviewAudioEl.currentTime=((e.clientX-r.left)/r.width)*reviewAudioEl.duration;}
+function seekReviewTo(ts){if(!reviewAudioEl)return;reviewAudioEl.currentTime=ts;reviewAudioEl.play();document.getElementById('revPlayBtn').textContent='⏸ Pausa';switchTab('transcription');}
+
+function togglePrevAudio(){
+  if(!prevAudioEl)return;
+  if(prevAudioEl.paused){prevAudioEl.play();document.getElementById('prevPlayBtn').textContent='⏸ Pausa';}
+  else{prevAudioEl.pause();document.getElementById('prevPlayBtn').textContent='▶ Play';}
+}
+function skipPrevAudio(s){if(prevAudioEl)prevAudioEl.currentTime=Math.max(0,Math.min(prevAudioEl.duration,prevAudioEl.currentTime+s));}
+function seekPrevAudio(e){if(!prevAudioEl||!prevAudioEl.duration)return;const r=document.getElementById('prevProgBg').getBoundingClientRect();prevAudioEl.currentTime=((e.clientX-r.left)/r.width)*prevAudioEl.duration;}
+
+let sliceListener = null;
+function playSliceAudio(startTs, endTs){
+  if(!reviewAudioEl) return;
+  // Remove any existing slice listener
+  if(sliceListener){ reviewAudioEl.removeEventListener('timeupdate', sliceListener); sliceListener=null; }
+  reviewAudioEl.pause();
+  reviewAudioEl.currentTime = startTs;
+  reviewAudioEl.play();
+  document.getElementById('revPlayBtn').textContent = '⏸ Pausa';
+  switchTab('transcription');
+  // Dedicated listener that removes itself when done
+  sliceListener = function(){
+    if(reviewAudioEl.currentTime >= endTs){
+      reviewAudioEl.pause();
+      reviewAudioEl.currentTime = endTs;
+      document.getElementById('revPlayBtn').textContent = '▶ Play';
+      reviewAudioEl.removeEventListener('timeupdate', sliceListener);
+      sliceListener = null;
+    }
+  };
+  reviewAudioEl.addEventListener('timeupdate', sliceListener);
+}
+
+function switchTab(name){
+  const names=['transcription','slides','annotations','ai'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ─── GEMINI AI (text-only for live recordings) ───
+function saveApiKey(){
+  const k=document.getElementById('geminiKeyInput')?.value.trim()||document.getElementById('uploadGeminiKey')?.value.trim();
+  if(k){geminiApiKey=k;showToast('✅ API key salvata!');}
+}
+function showAiConfirm(){
+  const s=sessions.find(x=>x.id===currentDetailId);
+  if(!s?.fullTranscript?.trim()){showToast('Nessuna trascrizione.');return;}
+  const key=document.getElementById('geminiKeyInput').value.trim()||geminiApiKey;
+  if(!key){showToast('Inserisci la Gemini API key.');return;}
+  document.getElementById('aiConfirm').classList.remove('hidden');
+}
+function hideAiConfirm(){document.getElementById('aiConfirm').classList.add('hidden');}
+
+async function elaborateWithAI(){
+  hideAiConfirm();
+  const s=sessions.find(x=>x.id===currentDetailId); if(!s)return;
+  const key=document.getElementById('geminiKeyInput').value.trim()||geminiApiKey;
+  if(!key){showToast('API key mancante.');return;}
+  geminiApiKey=key;
+  const resultDiv=document.getElementById('aiResult'),btn=document.getElementById('elaborateBtn');
+  btn.disabled=true;
+  resultDiv.innerHTML=`<div class="ai-loading"><div class="ai-spinner"></div>Elaborazione con Gemini AI...</div>`;
+  switchTab('ai');
+  let slideCtx='';
+  if(s.pinnedSlides?.length&&s.slides?.length){slideCtx='\n\nSLIDE:\n';s.pinnedSlides.sort((a,b)=>a.ts-b.ts).forEach(pin=>{slideCtx+=`- Slide ${pin.slideIdx+1} a ${fmtSecs(pin.ts)}: "${pin.slideName||''}"\n`;});}
+  const prompt=`Sei un assistente universitario. Analizza questa trascrizione di lezione${s.course?` di "${s.course}"`:''}${slideCtx?' e le slide collegate':''}:\n\nTRASCRIZIONE:\n${s.fullTranscript}${slideCtx}\n\nGenera:\n\n## 📋 Riassunto Generale\n3-5 frasi.\n\n## 🎯 Argomenti Principali\nLista.\n\n## 💡 Concetti Chiave\nMax 8 con spiegazione.\n\n## 🔗 Slide e Argomenti\n${s.pinnedSlides?.length?'Collega slide ai temi.':'(nessuna slide)'}\n\n## ❓ Possibili Domande d'Esame\n5-7 domande.\n\n## 📖 Termini da Studiare\nGlossario.`;
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3,maxOutputTokens:3000}})});
+    if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'Errore API');}
+    const data=await res.json();
+    const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    s.aiSummary=text; s.aiSummaryDate=new Date().toISOString();
+    resultDiv.innerHTML=`<div class="ai-result">${mdToHtml(text)}</div>`;
+    autoSaveSession(s); showToast('✨ Elaborazione completata!');
+  }catch(err){resultDiv.innerHTML=`<div class="ai-result" style="color:var(--accent2)">❌ ${esc(err.message)}</div>`;}
+  btn.disabled=false;
+}
+
+function mdToHtml(t){return t.replace(/^## (.+)$/gm,'<h3>$1</h3>').replace(/^### (.+)$/gm,'<h3 style="font-size:12px">$1</h3>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^[-*] (.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>)+/g,m=>`<ul>${m}</ul>`).replace(/\n{2,}/g,'</p><p>').replace(/\n/g,' ');}
+
+// ─── EXPORT / IMPORT / SAVE ───
+function openExportModal(){document.getElementById('exportModal').classList.remove('hidden');}
+function closeExportModal(){document.getElementById('exportModal').classList.add('hidden');}
+function exportTXT(){
+  const s=sessions.find(x=>x.id===currentDetailId); if(!s)return;
+  let txt=`LECTURENOTE\n${'='.repeat(50)}\nTitolo: ${s.title}\nCorso: ${s.course}\nData: ${new Date(s.date).toLocaleString('it-IT')}\nDurata: ${fmtSecs(s.duration)}\n\nTRASCRIZIONE\n`;
+  s.paragraphs.forEach((p,i)=>{txt+=`\n[${fmtSecs(p.ts)}] §${i+1}\n${p.text}\n`;});
+  if(s.pinnedSlides?.length){txt+=`\nSLIDE\n`;s.pinnedSlides.forEach(p=>{txt+=`[${fmtSecs(p.ts)}] Slide ${p.slideIdx+1}: ${p.slideName||''}\n`;});}
+  if(s.annotations?.length){txt+=`\nANNOTAZIONI\n`;s.annotations.forEach(a=>{txt+=`[${fmtSecs(a.ts)}] ${a.text}\n`;});}
+  if(s.aiSummary){txt+=`\nRIASSUNTO AI\n${s.aiSummary}\n`;}
+  downloadFile(txt,slugify(s.title)+'.txt','text/plain'); closeExportModal();
+}
+function exportJSON(){
+  const s=sessions.find(x=>x.id===currentDetailId); if(!s)return;
+  downloadFile(JSON.stringify(s,null,2),slugify(s.title)+'_'+s.id.replace('lesson_','')+'.json','application/json');
+  closeExportModal();
+}
+function autoSaveSession(s){
+  const blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=slugify(s.title)+'_'+s.id.replace('lesson_','')+'.json';
+  setTimeout(()=>{a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);},500);
+}
+function importLesson(event){
+  const file=event.target.files[0]; if(!file)return; event.target.value='';
+  const reader=new FileReader();
+  reader.onload=e=>{try{const s=JSON.parse(e.target.result);if(!s.id||!s.title)throw new Error();if(sessions.find(x=>x.id===s.id)){showToast('Lezione già presente!');return;}sessions.push(s);renderHome();showToast(`📂 "${s.title}" caricata!`);}catch{alert('File non valido.');}};
+  reader.readAsText(file);
+}
+function downloadFile(content,filename,mime){const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+
+// ─── STUDY VIEWER ───
+let studySession = null;
+let studyOrderedSlides = []; // slides in natural order, with pin info attached
+let studyPos = 0;
+let studyAudioEl = null;
+
+function buildStudyOrder(s) {
+  // All pins sorted chronologically
+  const pins = (s.pinnedSlides || []).slice().sort((a,b) => a.ts - b.ts);
+
+  // For each pin compute endTs = start of the NEXT pin (any slide), or session duration
+  // This correctly handles interleaved pins: slide A at 5min, slide B at 10min, slide A again at 15min
+  const pinEntries = pins.map((pin, i) => {
+    const nextPin = pins[i+1];
+    return {
+      slideIdx: pin.slideIdx,
+      isPinned: true,
+      ts: pin.ts,
+      endTs: nextPin ? nextPin.ts : (s.duration || null),
+      pinOrder: i + 1,          // global chronological position (1 = first in recording)
+      slideName: pin.slideName || s.slides[pin.slideIdx]?.name || `Slide ${pin.slideIdx+1}`
+    };
+  });
+
+  // Build map of which slideIdx values have at least one pin
+  const pinnedIdxSet = new Set(pins.map(p => p.slideIdx));
+
+  // Return slides in NATURAL order, each decorated:
+  // - if unpinned: single entry, no audio
+  // - if pinned once: single entry with ts/endTs
+  // - if pinned multiple times: one entry per pin occurrence
+  const result = [];
+  (s.slides || []).forEach((slide, i) => {
+    const myPins = pinEntries.filter(e => e.slideIdx === i);
+    if (myPins.length === 0) {
+      // Unpinned slide — single entry
+      result.push({
+        slideIdx: i,
+        isPinned: false,
+        ts: null,
+        endTs: null,
+        pinOrder: null,
+        totalPins: 0,
+        slideName: slide.name || `Slide ${i+1}`
+      });
+    } else {
+      // One entry per pin for this slide
+      myPins.forEach(pe => {
+        result.push({
+          slideIdx: i,
+          isPinned: true,
+          ts: pe.ts,
+          endTs: pe.endTs,
+          pinOrder: pe.pinOrder,
+          totalPins: myPins.length,
+          slideName: pe.slideName
+        });
+      });
+    }
+  });
+
+  return result;
+}
+
+function openStudyViewer(sessionId) {
+  studySession = sessions.find(x => x.id === sessionId);
+  if (!studySession || !studySession.slides?.length) return;
+
+  studyOrderedSlides = buildStudyOrder(studySession);
+  studyPos = 0;
+
+  studyAudioEl = document.getElementById('reviewAudio');
+  if (studySession.audioB64 && studySession.audioMime) {
+    if (studyAudioEl.getAttribute('data-session') !== studySession.id) {
+      studyAudioEl.src = `data:${studySession.audioMime};base64,${studySession.audioB64}`;
+      studyAudioEl.setAttribute('data-session', studySession.id);
+      studyAudioEl.load();
+    }
+    document.getElementById('studyAudioPill').style.display = 'flex';
+  } else {
+    document.getElementById('studyAudioPill').innerHTML =
+      '<span class="study-no-audio">Nessun audio disponibile</span>';
+  }
+
+  document.getElementById('studyViewer').classList.remove('hidden');
+  buildStudyStrip();
+  renderStudySlide();
+}
+
+function closeStudyViewer() {
+  if (studyAudioEl) { studyAudioEl.pause(); studyAudioEl.ontimeupdate = null; studyAudioEl.onended = null; }
+  document.getElementById('studyViewer').classList.add('hidden');
+  document.getElementById('studyPlayBtn').textContent = '▶';
+}
+
+function buildStudyStrip() {
+  const strip = document.getElementById('studyStrip');
+  strip.innerHTML = studyOrderedSlides.map((entry, pos) => {
+    const slide = studySession.slides[entry.slideIdx];
+    const pinLabel = entry.isPinned
+      ? `Slide ${entry.slideIdx+1}${entry.totalPins>1?' #'+entry.pinOrder:''} · ${fmtSecs(entry.ts)}`
+      : `Slide ${entry.slideIdx+1}`;
+    return `<img
+      class="study-thumb${pos===studyPos?' active':''}${entry.isPinned?' pinned-t':''}"
+      src="${slide.dataUrl}"
+      onclick="studyGoTo(${pos})"
+      title="${esc(pinLabel)}">`;
+  }).join('');
+}
+
+function renderStudySlide() {
+  if (!studySession || !studyOrderedSlides.length) return;
+
+  // Stop audio and clear listeners before changing slide
+  if (studyAudioEl) {
+    studyAudioEl.pause();
+    studyAudioEl.ontimeupdate = null;
+    studyAudioEl.onended = null;
+  }
+  document.getElementById('studyPlayBtn').textContent = '▶';
+
+  const entry = studyOrderedSlides[studyPos];
+  const slide = studySession.slides[entry.slideIdx];
+  if (!slide) return;
+
+  // Counter
+  const totalEntries = studyOrderedSlides.length;
+  let counterLabel = `Slide ${entry.slideIdx+1} / ${studySession.slides.length}`;
+  if (entry.isPinned) {
+    const multiLabel = entry.totalPins > 1
+      ? ` (aggancio ${studyOrderedSlides.filter((e,i)=>e.slideIdx===entry.slideIdx&&e.isPinned&&i<=studyPos).length}/${entry.totalPins})`
+      : '';
+    counterLabel += ` · 🎙 ${entry.pinOrder}° nella registrazione${multiLabel}`;
+  }
+  document.getElementById('studyCounter').textContent = counterLabel;
+  document.getElementById('studySlideName').textContent = entry.slideName;
+
+  // Image
+  document.getElementById('studyImg').src = slide.dataUrl;
+
+  // Annotations overlay
+  const annot = document.getElementById('studyAnnot');
+  if (slide.annotations) { annot.src = slide.annotations; annot.classList.remove('hidden'); }
+  else annot.classList.add('hidden');
+
+  // Pin label on slide
+  const pinLabel = document.getElementById('studyPinLabel');
+  if (entry.isPinned) {
+    const endLabel = entry.endTs != null ? ` → ${fmtSecs(entry.endTs)}` : '';
+    const occLabel = entry.totalPins > 1 ? ` (${studyOrderedSlides.filter((e,i)=>e.slideIdx===entry.slideIdx&&e.isPinned&&i<=studyPos).length}/${entry.totalPins})` : '';
+    pinLabel.textContent = `🎙 ${entry.pinOrder}°${occLabel} · ${fmtSecs(entry.ts)}${endLabel}`;
+    pinLabel.classList.remove('hidden');
+  } else {
+    pinLabel.classList.add('hidden');
+  }
+
+  // Strip
+  document.querySelectorAll('.study-thumb').forEach((t,i) => t.classList.toggle('active', i===studyPos));
+  const active = document.querySelector('.study-thumb.active');
+  if (active) active.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+
+  // Audio pill
+  setupStudyAudioPill(entry);
+}
+
+function setupStudyAudioPill(entry) {
+  const pill = document.getElementById('studyAudioPill');
+  const playBtn = document.getElementById('studyPlayBtn');
+  const progFill = document.getElementById('studyProgFill');
+  const curTime = document.getElementById('studyCurTime');
+  const rangeEl = document.getElementById('studyRange');
+
+  if (!studySession.audioB64 || !entry.isPinned) {
+    rangeEl.textContent = entry.isPinned ? '—' : 'Slide senza audio agganciato';
+    progFill.style.width = '0%';
+    curTime.textContent = '—';
+    pill.style.borderColor = 'rgba(255,255,255,.1)';
+    playBtn.style.opacity = '0.3';
+    return;
+  }
+
+  playBtn.style.opacity = '1';
+  pill.style.borderColor = 'rgba(91,95,255,.5)';
+
+  const sliceStart = entry.ts;
+  const sliceEnd = entry.endTs;  // may be null if last pin and no duration
+  const rangeLabel = sliceEnd != null
+    ? `${fmtSecs(sliceStart)} → ${fmtSecs(sliceEnd)}`
+    : `da ${fmtSecs(sliceStart)}`;
+  rangeEl.textContent = rangeLabel;
+
+  // Seek to start of this slice immediately (but don't play)
+  // Use a small timeout to ensure audio element is ready
+  const seekToSlice = () => {
+    studyAudioEl.currentTime = sliceStart;
+    curTime.textContent = fmtSecs(Math.floor(sliceStart));
+    progFill.style.width = '0%';
+  };
+
+  if (studyAudioEl.readyState >= 1) {
+    seekToSlice();
+  } else {
+    studyAudioEl.addEventListener('loadedmetadata', seekToSlice, {once: true});
+  }
+
+  // Wire timeupdate: track progress bar + enforce hard stop at sliceEnd
+  studyAudioEl.ontimeupdate = () => {
+    const cur = studyAudioEl.currentTime;
+    const end = sliceEnd ?? (studySession.duration || sliceStart + 3600);
+    const dur = Math.max(1, end - sliceStart);
+    const pos = Math.max(0, Math.min(dur, cur - sliceStart));
+    progFill.style.width = ((pos / dur) * 100).toFixed(1) + '%';
+    curTime.textContent = fmtSecs(Math.floor(cur));
+
+    // Hard stop: if audio goes past sliceEnd, stop immediately
+    if (sliceEnd != null && cur >= sliceEnd) {
+      studyAudioEl.pause();
+      studyAudioEl.currentTime = sliceEnd;
+      playBtn.textContent = '▶';
+    }
+  };
+
+  studyAudioEl.onended = () => { playBtn.textContent = '▶'; };
+}
+
+function clearStudySliceListener() {
+  if (studyAudioEl) { studyAudioEl.ontimeupdate = null; studyAudioEl.onended = null; }
+}
+
+function toggleStudyAudio() {
+  if (!studyAudioEl || !studySession?.audioB64) return;
+  const entry = studyOrderedSlides[studyPos];
+  if (!entry?.isPinned) { showToast('Questa slide non ha audio agganciato'); return; }
+
+  if (studyAudioEl.paused) {
+    const sliceStart = entry.ts;
+    const sliceEnd = entry.endTs;
+    const cur = studyAudioEl.currentTime;
+    // If current position is outside this slice, restart from sliceStart
+    const pastEnd = sliceEnd != null && cur >= sliceEnd - 0.05;
+    const beforeStart = cur < sliceStart - 0.05;
+    if (pastEnd || beforeStart) {
+      studyAudioEl.currentTime = sliceStart;
+    }
+    studyAudioEl.play().catch(e => console.warn('play failed:', e));
+    document.getElementById('studyPlayBtn').textContent = '⏸';
+  } else {
+    studyAudioEl.pause();
+    document.getElementById('studyPlayBtn').textContent = '▶';
+  }
+}
+
+function seekStudyAudio(e) {
+  if (!studyAudioEl || !studySession?.audioB64) return;
+  const entry = studyOrderedSlides[studyPos];
+  if (!entry?.isPinned) return;
+  const sliceStart = entry.ts;
+  const sliceEnd = entry.endTs ?? (studySession.duration || sliceStart + 3600);
+  const rect = document.getElementById('studyProgBg').getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  studyAudioEl.currentTime = sliceStart + ratio * (sliceEnd - sliceStart);
+}
+
+function studyPrev() { if (studyPos > 0) { studyPos--; renderStudySlide(); } }
+function studyNext() { if (studyPos < studyOrderedSlides.length-1) { studyPos++; renderStudySlide(); } }
+function studyGoTo(pos) { studyPos = pos; renderStudySlide(); }
+
+let studyTouchX = 0;
+document.getElementById('studyImgWrap').addEventListener('touchstart', e=>{studyTouchX=e.touches[0].clientX;},{passive:true});
+document.getElementById('studyImgWrap').addEventListener('touchend', e=>{
+  const dx=e.changedTouches[0].clientX-studyTouchX;
+  if(Math.abs(dx)>50){if(dx<0)studyNext();else studyPrev();}
+},{passive:true});
+
+// ─── KEYBOARD NAVIGATION ───
+document.addEventListener('keydown', e => {
+  const svOpen = !document.getElementById('slideViewer').classList.contains('hidden');
+  const studyOpen = !document.getElementById('studyViewer').classList.contains('hidden');
+  if (!svOpen && !studyOpen) return;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); svOpen ? svPrev() : studyPrev(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); svOpen ? svNext() : studyNext(); }
+  if (e.key === 'Escape')     { e.preventDefault(); svOpen ? closeSlideViewer() : closeStudyViewer(); }
+});
+
+// ─── CORRECTIONS ───
+const CORR={'ke':'che','xke':'perché','xché':'perché','nn':'non','cmq':'comunque','qlc':'qualcosa','qst':'questo','qsta':'questa','qndi':'quindi','qlq':'qualche','tnt':'tanto','sn':'sono','tt':'tutto','pr':'per','xò':'però','bn':'bene','algoitmo':'algoritmo','algortimo':'algoritmo','teroema':'teorema','teroma':'teorema','equazzione':'equazione','funzzione':'funzione','coefficente':'coefficiente','propietà':'proprietà','proprieta':'proprietà','continita':'continuità','differenzale':'differenziale','probabiltà':'probabilità','ehm ':'','uhm ':'','mhm ':''};
+function applyCorrections(text){let r=text;for(const[w,c]of Object.entries(CORR)){if(w.includes(' ')){r=r.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),c);}else{r=r.replace(new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi'),m=>c&&m[0]===m[0].toUpperCase()?c[0].toUpperCase()+c.slice(1):c);}}return r.replace(/  +/g,' ').replace(/([.!?]\s+)([a-z])/g,(_,p,c)=>p+c.toUpperCase()).trim();}
+function correctParagraphs(p){return p.map(x=>({...x,text:applyCorrections(x.text),keywords:extractKeywords(applyCorrections(x.text))}));}
+
+// ─── HELPERS ───
+function fmtSecs(s){s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return h>0?`${pad(h)}:${pad(m)}:${pad(sec)}`:`${pad(m)}:${pad(sec)}`;}
+function pad(n){return String(n).padStart(2,'0');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function slugify(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40)||'lezione';}
+function generateTitle(course){const d=new Date(),day=d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});const cap=day.charAt(0).toUpperCase()+day.slice(1);return course.trim()?`${course.trim()} — ${cap}`:`Lezione del ${cap}`;}
+function extractKeywords(text){const stop=new Set(['il','lo','la','i','gli','le','un','una','uno','e','è','a','di','da','in','con','su','per','tra','fra','che','non','si','ma','ho','ha','hanno','sono','era','ai','dei','nelle','degli','alla','delle','questo','questa','questi','queste','come','quando','anche','più','già','mi','ti','ci','vi','se','quindi','però','allora','molto','ogni','altro','altra','altri','altre','dopo','prima','poi','qui','dove','cosa','chi','quale','quanto']);const words=(text.toLowerCase().match(/\b[a-zàèéìòùáâä]{5,}\b/g)||[]);const freq={};words.forEach(w=>{if(!stop.has(w))freq[w]=(freq[w]||0)+1;});return Object.entries(freq).filter(([,v])=>v>=2).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k])=>k);}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.opacity='0';},2800);}
+
+renderHome();
+</script>
+</body>
+</html>
