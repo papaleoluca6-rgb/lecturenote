@@ -11,11 +11,11 @@ Una riga = una sessione di lavoro. Stato: ⬜ da fare · 🟨 in corso · ✅ fa
 | 4 | Traduttore live zh/en→it con sottotitoli | `translation/` + `transcription/` | alto | ⬜ |
 | 5 | Slide: import PDF/immagini, viewer, aggancio al tempo | `slides/` | medio | ✅ |
 | 6 | Penna: tratti vettoriali con pressione, palm rejection, su slide e pagine bianche | `ink/` | alto | ✅ |
-| 7 | Note di testo e foto con timestamp | `notes/` | basso | ⬜ |
+| 7 | Note di testo e foto con timestamp | `notes/` | basso | ✅ |
 | 8 | Ripasso: riascolto da nota/slide/frase, riassunto AI, flashcard | `study/` | medio | ⬜ |
-| 9 | Impostazioni: chiavi API, scelta provider | `settings/` | basso | ⬜ |
-| 10 | Backup: export/import di tutto, import dei vecchi JSON di `legacy/` | `backup/` | medio | ⬜ |
-| 11 | PWA: icone PNG, installazione su Android, test offline | — | basso | ⬜ |
+| 9 | Impostazioni: chiavi API, scelta provider | `settings/` | basso | ✅ |
+| 10 | Backup: export/import di tutto, import dei vecchi JSON di `legacy/` | `backup/` | medio | 🟨 |
+| 11 | PWA: icone PNG, installazione su Android, test offline | — | basso | 🟨 |
 
 ## Traduttore in tempo reale (cinese→italiano, inglese→italiano)
 
@@ -65,3 +65,14 @@ Il risultato decide i provider di default.
 - **Pagine bianche** (`NotebookPanel.tsx`): pagine 16:10, aggiungi/elimina, sfoglia. Schede «Slide / Pagine bianche» in `app/LessonPanels.tsx`; restano montate entrambe, così cambiare scheda non crea agganci di slide falsi.
 - **Correzione all'import PDF**: `intent: 'print'` nel render di pdf.js, che altrimenti aspetta `requestAnimationFrame` e si blocca se si cambia app o lo schermo si spegne durante l'import.
 - Verificato sul PC con eventi penna/tocco simulati. **Da provare sul tablet:** pressione e hover reali della S Pen, palm rejection con la mano appoggiata, fluidità dei tratti lunghi. Le miniature delle slide non mostrano ancora la scrittura.
+
+## Righe 7, 9, 10, 11 (sessione con sub-agenti, 2026-11-18)
+
+Fatte con il metodo Superpowers «subagent-driven development»: un sub-agente Sonnet per task, una revisione per task, una revisione finale su Opus. Piano in `docs/plans/2026-11-18-roadmap-7-9-10-11.md`, ramo git `roadmap-7-9-10-11`.
+
+- **7 Note ✅** (`notes/`): scheda «Note» accanto a Slide e Pagine bianche. Il `ts` è preso quando si inizia a scrivere; foto ridotte a 1600 px JPEG come `Blob`; modifica, eliminazione, foto a tutto schermo. Una bozza non aggiunta si salva uscendo dalla lezione.
+- **9 Impostazioni ✅** (`settings/`, `db/settings.ts`): `#impostazioni` dalla Libreria. Scelta del riconoscimento del parlato e del traduttore, chiave Gemini facoltativa (`apiKey.gemini`, la stessa della prova traduttore). Senza chiave le opzioni Gemini sono disattivate. **Per la riga 4:** leggere i provider con `effectiveProvider`, perché un provider Gemini rimasto senza chiave (es. dopo un backup) deve valere come quello di default.
+- **10 Backup 🟨** (`backup/`): file `.lnbak` binario (niente base64, adatto a ore di audio), export di tutte le tabelle tranne le chiavi API, import che unisce (stessi id sovrascritti) in un'unica transazione; file troncati o non validi rifiutati. Verificato sul PC con il database vero (esporta → reimporta, conteggi identici, audio/slide/foto leggibili). **Da fare:** import dei vecchi JSON di `legacy/`.
+- **11 PWA 🟨**: icone PNG 192/512 + maskable generate da `npm run icons` (`scripts/make-icons.mjs`, senza dipendenze), manifest completo, PNG in cache offline. **Da fare sul tablet:** installazione da Chrome e prova offline.
+- Correzione trovata dalla revisione finale: chiudendo una lezione senza audio né slide ma con note o pagine a penna, la lezione veniva cancellata e le note restavano orfane; ora conta anche note e penna.
+- Rifiniture rimandate (dalle revisioni): avanzamento dell'import per blocchi di righe, tasto «indietro» di Android nel viewer foto, stili dei bottoni condivisi tra feature da spostare in `global.css`.
