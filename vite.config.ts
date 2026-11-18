@@ -13,7 +13,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': una versione nuova non prende il controllo da sola a metà lezione (cancellava i file della vecchia
+      // e rallentava il tablet): si applica dal pulsante "Aggiorna" della libreria o alla prossima apertura dell'app.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
         name: 'LectureNote',

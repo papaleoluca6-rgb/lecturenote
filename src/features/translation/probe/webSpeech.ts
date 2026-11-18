@@ -49,6 +49,9 @@ export interface WsHandlers {
 /** Riconoscimento continuo che si riavvia da solo (Chrome Android si ferma dopo ogni pausa). */
 export class WebSpeechLive {
   private on = true
+  /** Errori di rete di fila: senza VPN il server Google non risponde e si riproverebbe ogni 0,3 s all'infinito. */
+  private netFails = 0
+  private restartTimer = 0
   private sr: SR | null = null
   private firstAt = new Map<number, number>()
   private lang: string
@@ -72,6 +75,7 @@ export class WebSpeechLive {
     if (this.local) sr.processLocally = true
     sr.onstart = () => this.h.onState('in ascolto')
     sr.onresult = (e) => {
+      this.netFails = 0
       const now = performance.now()
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i]
@@ -84,13 +88,17 @@ export class WebSpeechLive {
     }
     sr.onerror = (e) => {
       this.h.onError(e.error)
+      if (e.error === 'network') this.netFails++
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') this.on = false
     }
     sr.onend = () => {
       this.firstAt.clear()
       if (!this.on) return this.h.onState('fermo')
       this.h.onRestart()
-      window.setTimeout(() => this.on && this.open(C), 300)
+      // Dopo errori di rete si aspetta un po' di più (1, 2, 4, poi 8 s): microfono e batteria restano liberi,
+      // e quando la VPN torna si riparte entro pochi secondi.
+      const wait = this.netFails ? Math.min(8000, 1000 * 2 ** (this.netFails - 1)) : 300
+      this.restartTimer = window.setTimeout(() => this.on && this.open(C), wait)
     }
     this.sr = sr
     sr.start()
@@ -98,7 +106,9 @@ export class WebSpeechLive {
 
   stop() {
     this.on = false
+    window.clearTimeout(this.restartTimer)
     this.sr?.stop()
+    this.h.onState('fermo')
   }
 }
 

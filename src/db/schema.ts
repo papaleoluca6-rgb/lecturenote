@@ -55,6 +55,11 @@ export interface Slide {
   thumb?: Blob
   width: number
   height: number
+  /**
+   * Parole della pagina PDF, normalizzate 0..1: [x, y, w, h, x, y, w, h, …]. L'evidenziatore si aggancia a queste.
+   * Assente per foto, PDF scansionati e slide importate prima del 2026-11-18. Campo non indicizzato: nessuna nuova versione.
+   */
+  words?: number[]
 }
 
 export interface SlidePin {

@@ -1,5 +1,6 @@
 /* La lezione occupa tutto lo schermo: barra in alto, sotto l'area di lavoro che riempie lo spazio rimasto. */
-.rec { height: 100dvh; display: flex; flex-direction: column; gap: 8px; padding: max(8px, env(safe-area-inset-top)) clamp(8px, 1.6vw, 20px) max(8px, env(safe-area-inset-bottom)); max-width: 1600px; margin: 0 auto; }
+/* "main.rec" e non ".rec": anche il badge rosso ".ui-badge.rec" ha la classe rec e diventerebbe alto quanto lo schermo. */
+main.rec { height: 100dvh; display: flex; flex-direction: column; gap: 8px; padding: max(8px, env(safe-area-inset-top)) clamp(8px, 1.6vw, 20px) max(8px, env(safe-area-inset-bottom)); max-width: 1600px; margin: 0 auto; }
 .rec > .ui-muted { padding: 16px; }
 
 .rec-head { flex: none; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 4px 6px 4px 2px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }

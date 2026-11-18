@@ -12,16 +12,17 @@ export function findPage(target: InkTarget): Promise<InkPage | undefined> {
   return 'pageId' in target ? db.ink.get(target.pageId) : db.ink.where('slideId').equals(target.slideId).first()
 }
 
-/** Aggiunge un tratto; la pagina della slide viene creata al primo tratto. Restituisce l'id della pagina. */
-export async function addStroke(lessonId: Id, target: InkTarget, stroke: Stroke): Promise<Id> {
+/** Aggiunge uno o più tratti; la pagina della slide viene creata al primo tratto. Restituisce l'id della pagina. */
+export async function addStroke(lessonId: Id, target: InkTarget, stroke: Stroke | Stroke[]): Promise<Id> {
+  const add = Array.isArray(stroke) ? stroke : [stroke]
   return db.transaction('rw', db.ink, async () => {
     const page = await findPage(target)
     if (page) {
-      await db.ink.update(page.id, { strokes: [...page.strokes, stroke] })
+      await db.ink.update(page.id, { strokes: [...page.strokes, ...add] })
       return page.id
     }
     const id = newId()
-    await db.ink.add({ id, lessonId, slideId: 'slideId' in target ? target.slideId : undefined, order: 0, strokes: [stroke] })
+    await db.ink.add({ id, lessonId, slideId: 'slideId' in target ? target.slideId : undefined, order: 0, strokes: add })
     return id
   })
 }

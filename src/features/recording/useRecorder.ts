@@ -56,6 +56,7 @@ export function useRecorder(lessonId: Id) {
     state,
     elapsed,
     error,
+    saving: rec.saving,
     wakeLock: rec.wake.active,
     /** Posizione esatta sulla timeline (per agganciare slide e note al tempo). */
     elapsedSec: () => rec.elapsedSec(),

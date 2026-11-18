@@ -3,6 +3,7 @@ import type { Id, InkPage, Sec, Stroke } from '../../db/schema'
 import { addStroke, removeStrokes, type InkTarget } from './data'
 import { ERASER_R, hitsStroke, strokePath } from './freehand'
 import { hideCursor, showCursor } from './inkCursor'
+import { snapHighlight, type textLines } from './snap'
 import { getTool, setTool, tokenColor } from './toolStore'
 
 /** Dopo l'ultimo segnale della penna (anche in hover) il palmo resta ignorato per questo tempo. */
@@ -30,7 +31,7 @@ const sideButton = (e: Ev) => e.pointerType === 'pen' && ((e.buttons & (2 | 32))
  * il viewer delle slide li ignora per zoom e scorrimento (convenzione DOM, nessun import tra feature).
  * Il tratto in corso non passa dallo stato di React: si aggiorna il `d` del path una volta per frame.
  */
-export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | undefined, vbH: number, now: () => Sec, refs: InkRefs) {
+export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | undefined, vbH: number, now: () => Sec, refs: InkRefs, lines: ReturnType<typeof textLines> = []) {
   const [pending, setPending] = useState<Stroke[]>([])
   /** Tratti cancellati dalla gomma, validi solo per la versione della pagina su cui si è cancellato. */
   const [erasedOn, setErasedOn] = useState<{ page: InkPage | undefined; set: Set<number> }>({ page: undefined, set: new Set() })
@@ -176,8 +177,10 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
     const s = stroke.current
     stroke.current = null
     if (s) {
-      setPending((p) => [...p.filter((x) => !saved.has(strokeKey(x))), s])
-      void addStroke(lessonId, target, s).then((pageId) => setTool({ lastPageId: pageId, redo: [] }))
+      // Evidenziatore: la traccia a mano diventa una fascia esatta sulle parole (o almeno dritta).
+      const add = (s.tool === 'highlighter' && snapHighlight(s, lines, vbH)) || [s]
+      setPending((p) => [...p.filter((x) => !saved.has(strokeKey(x))), ...add])
+      void addStroke(lessonId, target, add).then((pageId) => setTool({ lastPageId: pageId, redo: [] }))
     } else if (page && erased.current.size) {
       void removeStrokes(page.id, erased.current)
       erased.current = new Set()

@@ -8,6 +8,12 @@ import './recording.css'
 
 const STATE_LABEL = { idle: 'Pronto', recording: 'Registrazione', paused: 'In pausa' } as const
 
+/** Dopo l'uscita: aspetta audio e bozze, poi elimina la lezione se è rimasta vuota. */
+async function finishClose(lessonId: Id, saved: Promise<unknown>, flushed: Promise<unknown>): Promise<void> {
+  await Promise.allSettled([saved, flushed])
+  await dropIfEmpty(lessonId)
+}
+
 /** Elimina la lezione se non contiene nulla (né audio, slide, note, penna, trascrizione o flashcard). */
 async function dropIfEmpty(lessonId: Id): Promise<void> {
   // I soli agganci di slide (pins) e traduzioni non bastano: dipendono da slide e frasi.
@@ -48,11 +54,13 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
     return () => { flushers.delete(fn) }
   })
 
-  const close = async () => {
-    await r.stop()
+  // Si torna subito alla libreria: salvataggio dell'audio e controllo "lezione vuota" finiscono in sottofondo
+  // (con un audio lungo, aspettarli qui bloccava la freccia per secondi).
+  const close = () => {
+    const saved = r.stop()
     // Prima dei controlli sulla lezione vuota: una bozza di nota conta come contenuto.
-    await Promise.allSettled([...flushers].map((f) => f()))
-    await dropIfEmpty(lessonId)
+    const flushed = Promise.allSettled([...flushers].map((f) => f()))
+    void finishClose(lessonId, saved, flushed).catch((err: unknown) => console.error(err))
     onClose()
   }
   const rename = (title: string) => {
@@ -64,7 +72,7 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
   return (
     <main className="rec">
       <header className={`rec-head ${r.state}`} aria-label="Registratore">
-        <button className="ui-btn ghost icon-only" onClick={() => void close()} aria-label="Torna alla libreria">
+        <button className="ui-btn ghost icon-only" onClick={close} aria-label="Torna alla libreria">
           <Icon name="back" />
         </button>
         <div className="rec-title">
@@ -73,12 +81,12 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
         </div>
         <div className="rec-status" aria-live="polite">
           <span className="rec-dot" aria-hidden />
-          <span className="rec-state">{STATE_LABEL[r.state]}</span>
+          <span className="rec-state">{r.saving ? 'Salvataggio…' : STATE_LABEL[r.state]}</span>
           <span className="rec-timer mono">{fmtSecs(r.elapsed)}</span>
         </div>
         <div className="rec-controls">
           {r.state === 'idle' && (
-            <button className="ui-btn record" onClick={() => void r.start()}>
+            <button className="ui-btn record" disabled={r.saving} onClick={() => void r.start()}>
               <Icon name="mic" /> {r.elapsed > 0 ? 'Continua' : 'Registra'}
             </button>
           )}

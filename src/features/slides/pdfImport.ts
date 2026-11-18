@@ -3,6 +3,7 @@
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { MAX_SIDE, canvasToBlob, makeThumb, releaseCanvas } from './canvas'
+import { wordBoxes, type Measure } from './textBoxes'
 
 GlobalWorkerOptions.workerSrc = workerUrl
 
@@ -14,6 +15,8 @@ export interface RenderedPage {
   thumb: Blob
   width: number
   height: number
+  /** Parole della pagina (solo PDF con testo vero): vedi Slide.words. */
+  words?: number[]
 }
 
 /** Renderizza tutte le pagine; `onPage` riceve ogni pagina appena pronta (così si salva subito e si libera memoria). */
@@ -30,6 +33,12 @@ export async function renderPdf(
     iccUrl: res('iccs'),
   })
   const doc = await task.promise
+  const ctx = document.createElement('canvas').getContext('2d')
+  const measure: Measure = (text, fam) => {
+    if (!ctx) return 0
+    ctx.font = `100px ${fam}`
+    return ctx.measureText(text).width
+  }
   try {
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i)
@@ -45,7 +54,10 @@ export async function renderPdf(
         await page.render({ canvas, viewport, background: '#ffffff', intent: 'print' }).promise
         const image = await canvasToBlob(canvas)
         const thumb = await makeThumb(canvas, canvas.width, canvas.height)
-        await onPage({ image, thumb, width: canvas.width, height: canvas.height }, i - 1, doc.numPages)
+        // Un PDF scansionato non ha testo: si va avanti senza (l'evidenziatore allora raddrizza soltanto).
+        const text = await page.getTextContent().catch(() => null)
+        const words = text ? wordBoxes(text.items, viewport.transform, canvas.width, canvas.height, measure, text.styles) : []
+        await onPage({ image, thumb, width: canvas.width, height: canvas.height, ...(words.length ? { words } : {}) }, i - 1, doc.numPages)
       } finally {
         releaseCanvas(canvas)
         page.cleanup()

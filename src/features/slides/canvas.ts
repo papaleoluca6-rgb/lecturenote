@@ -1,7 +1,10 @@
 // Utility canvas condivise da import PDF e immagini.
 
-/** Lato lungo massimo della slide salvata: nitida sul tablet (1280×800) anche con un po' di zoom, senza sprecare memoria. */
-export const MAX_SIDE = 1600
+/**
+ * Lato lungo massimo della slide salvata. A schermo pieno la slide è larga ~1300 pixel reali sul tablet:
+ * 3000 la tiene nitida fino a zoom ~2,5× (con 1600 si sgranava subito). Circa 300-600 KB a pagina in JPEG.
+ */
+export const MAX_SIDE = 3000
 /** Larghezza delle miniature (salvate a parte per non decodificare 100 immagini grandi nella barra). */
 export const THUMB_W = 240
 

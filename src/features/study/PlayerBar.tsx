@@ -1,6 +1,6 @@
 import { Icon } from '../../lib/Icon'
 import { fmtSecs } from '../../lib/time'
-import type { LessonAudio } from './player'
+import type { LessonAudio } from '../../lib/lessonAudio'
 
 /** Comandi di riascolto: play/pausa, ±10 s, barra del tempo su tutta la lezione. */
 export function PlayerBar({ player, disabled }: { player: LessonAudio; disabled: boolean }) {

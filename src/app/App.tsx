@@ -5,6 +5,7 @@ import { ExportDialog } from '../features/export/ExportDialog'
 import type { ExportTarget } from '../features/export/notebooklm'
 import { LibraryScreen } from '../features/library/LibraryScreen'
 import { LessonPanels } from './LessonPanels'
+import { UpdateBanner } from './UpdateBanner'
 import { RecordingScreen } from '../features/recording/RecordingScreen'
 import { SettingsScreen } from '../features/settings/SettingsScreen'
 import { ProbeScreen } from '../features/translation/probe/ProbeScreen'
@@ -36,6 +37,7 @@ export function App() {
     <>
       <LibraryScreen onOpenLesson={setLessonId} onExport={setExportTarget} />
       {exportTarget && <ExportDialog target={exportTarget} onClose={() => setExportTarget(null)} />}
+      <UpdateBanner />
     </>
   )
 }

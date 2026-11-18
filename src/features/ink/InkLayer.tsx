@@ -3,6 +3,7 @@ import { memo, useMemo, useRef } from 'react'
 import type { Id, Sec, Stroke } from '../../db/schema'
 import { findPage, type InkTarget } from './data'
 import { VB_W, strokePath } from './freehand'
+import { textLines } from './snap'
 import { useInkInput } from './useInkInput'
 import './ink.css'
 
@@ -13,6 +14,8 @@ interface Props {
   width: number
   height: number
   now: () => Sec
+  /** Parole della slide sotto (Slide.words): l'evidenziatore si aggancia al testo. */
+  words?: number[]
 }
 
 function StrokePath({ s, vbH }: { s: Stroke; vbH: number }) {
@@ -25,7 +28,7 @@ const Saved = memo(function Saved({ strokes, vbH, hidden }: { strokes: Stroke[];
 })
 
 /** Livello trasparente di scrittura a mano, sovrapposto esattamente alla pagina (anche quando la slide è ingrandita). */
-export function InkLayer({ lessonId, target, width, height, now }: Props) {
+export function InkLayer({ lessonId, target, width, height, now, words }: Props) {
   const slideId = 'slideId' in target ? target.slideId : undefined
   const pageId = 'pageId' in target ? target.pageId : undefined
   const page = useLiveQuery(() => findPage(slideId ? { slideId } : { pageId: pageId ?? '' }), [slideId, pageId])
@@ -33,7 +36,8 @@ export function InkLayer({ lessonId, target, width, height, now }: Props) {
   const live = useRef<SVGPathElement>(null)
   const cursor = useRef<SVGCircleElement>(null)
   const refs = useMemo(() => ({ live, cursor }), [])
-  const ink = useInkInput(lessonId, target, page, vbH, now, refs)
+  const lines = useMemo(() => textLines(words), [words])
+  const ink = useInkInput(lessonId, target, page, vbH, now, refs, lines)
   const strokes = useMemo(() => page?.strokes ?? [], [page])
 
   return (

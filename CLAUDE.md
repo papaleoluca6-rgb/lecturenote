@@ -47,6 +47,7 @@ docs/ROADMAP.md   funzionalità in ordine e stato
 - Colori e misure solo tramite le variabili di `styles/global.css`; bottoni con `.ui-btn`, icone con `lib/Icon.tsx` (mai emoji).
 
 ## Come lavoriamo (risparmio token)
+- **Sub-agenti ogni volta che è possibile e conviene**: ricerche nel codice, bug indipendenti tra loro, revisione delle modifiche, verifiche (build, test nel browser) vanno a sub-agenti, anche in parallelo; il lavoro che tocca gli stessi file resta in un solo agente.
 - **Una sessione per funzionalità** della roadmap; alla fine aggiornare lo stato in `docs/ROADMAP.md`.
 - `/compact` quando la conversazione si allunga.
 - Effort basso per modifiche semplici (testi, stile, piccoli fix); effort alto solo per registrazione, penna e traduttore live.

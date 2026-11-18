@@ -8,7 +8,7 @@
 
 .sl-viewer { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 .sl-stage { flex: 1; min-height: 200px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
-.sl-page { position: relative; flex: none; transform-origin: center; will-change: transform; background: var(--paper); box-shadow: var(--shadow); }
+.sl-page { position: relative; flex: none; transform-origin: center; background: var(--paper); box-shadow: var(--shadow); }
 .sl-img { display: block; width: 100%; height: 100%; }
 .sl-stage.zoomed { cursor: grab; }
 .sl-nav { flex: none; display: flex; align-items: center; gap: 8px; }
@@ -22,3 +22,13 @@
 .sl-thumb-n, .sl-thumb-ts { position: absolute; bottom: 2px; font-size: 11px; padding: 1px 5px; border-radius: 6px; background: var(--bg); color: var(--text); }
 .sl-thumb-n { left: 2px; }
 .sl-thumb-ts { right: 2px; color: var(--rec); }
+
+/* Niente will-change: transform sulla pagina: Chrome la disegnerebbe una volta a zoom 1 e poi ingrandirebbe l'immagine sfocata. */
+
+/* Schermo intero: solo la slide; i comandi restano in un angolo, poco visibili finché non si toccano */
+.sl.full { position: fixed; inset: 0; z-index: 50; gap: 0; background: var(--bg); }
+.sl.full .sl-viewer { position: relative; gap: 0; }
+.sl.full .sl-stage { min-height: 0; border: 0; border-radius: 0; background: var(--bg); }
+.sl.full .sl-page { box-shadow: none; }
+.sl.full .sl-nav { position: absolute; right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); gap: 4px; padding: 4px; border-radius: var(--r-lg); background: var(--scrim); opacity: 0.55; transition: opacity var(--dur) var(--ease); }
+.sl.full .sl-nav:hover, .sl.full .sl-nav:focus-within, .sl.full .sl-nav:active { opacity: 1; }

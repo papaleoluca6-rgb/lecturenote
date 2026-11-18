@@ -104,6 +104,17 @@ Skill gratuite installate (globali, `~/.claude/skills`): `webapp-testing` (Anthr
 ## Pubblicazione (2026-11-18)
 
 - **Indirizzo dell'app:** https://papaleoluca6-rgb.github.io/lecturenote/ (GitHub Pages, gratuito, HTTPS: microfono senza flag di Chrome). Repository pubblico `papaleoluca6-rgb/lecturenote`; prima di pubblicare: controllo di chiavi e dati personali su file e cronologia, autore dei commit riscritto (`papaleoluca6@gmail.com`).
-- **Aggiornamenti:** push su `main` → il workflow compila (`BASE_PATH=/lecturenote/`) e pubblica. Sul tablet l'app si aggiorna da sola alla prima apertura con la rete.
+- **Aggiornamenti:** push su `main` → il workflow compila (`BASE_PATH=/lecturenote/`) e pubblica. Sul tablet la versione nuova si scarica online e si applica col pulsante «Aggiorna» della libreria (o riaprendo l'app): mai a metà lezione (`registerType: 'prompt'`).
 - **Installazione sul tablet:** aprire l'indirizzo in Chrome (in Cina con la VPN), **aspettare un minuto online** (la prima volta scarica ~200 file per l'offline), poi menu ⋮ → «Installa app». Da lì funziona senza rete.
 - Verificato: sito in HTTPS, service worker su `/lecturenote/`, 198 file in cache, riapertura offline, microfono disponibile, nessun errore. **Da fare sul tablet:** installazione e prove (righe 3, 4, 11).
+
+## Primo test sul tablet (2026-11-18)
+
+Esito: registrazione OK anche con i sottotitoli accesi. Correzioni fatte:
+- **Badge «agganciate» che riempiva lo schermo registrando con una slide aperta:** la classe `rec` del badge prendeva lo stile della schermata (`100dvh`). Ora la schermata è `main.rec`.
+- **Stop e freccia indietro lenti con audio lungo / online:** lo stop torna subito «Pronto» («Salvataggio…» mentre scrive) e la freccia torna subito alla libreria; salvataggio e controllo «lezione vuota» finiscono in sottofondo (`whenSaved` fa aspettare chi riapre la lezione). Web Speech senza rete verso Google riprova con attesa crescente (1→30 s) invece che ogni 0,3 s. Il service worker non prende più il controllo da solo (vedi Pubblicazione). Causa esatta del blocco non vista sul tablet: **da riprovare**, e se succede ancora provare con i sottotitoli spenti.
+- **Slide più nitide nello zoom:** lato lungo 3000 px invece di 1600 (solo per i PDF importati da ora: quelli vecchi vanno reimportati) e niente `will-change: transform` (Chrome ingrandiva l'immagine già disegnata).
+- **Schermo intero delle slide** (pulsante in fondo a destra): solo la slide, comandi in un angolo semitrasparenti; tasto Indietro di Android per uscire.
+- **Riascolto dalle slide:** un solo lettore per lezione (`lib/lessonAudio.ts`, creato in `app/LessonPanels.tsx`), condiviso da Ripasso e Slide. Fuori registrazione, nella barra della slide: ▶ dal momento in cui la slide è comparsa, e «L'audio segue le slide» (sfogliando l'audio salta; ascoltando, le slide avanzano da sole).
+- **Evidenziatore che seleziona il testo:** all'import di un PDF si salvano anche le posizioni delle parole (`Slide.words`, larghezza vera di ogni lettera misurata col font; caratteri cinesi uno per uno). Finito il tratto, l'evidenziatore diventa una fascia esatta sulle parole toccate, dalla prima all'ultima in ordine di lettura, anche su più righe (`ink/snap.ts`). Senza testo (foto, PDF scansionati, slide importate prima) un tratto quasi orizzontale diventa almeno dritto. Limiti: un evidenziato su più righe sono più tratti (Annulla ne toglie uno per volta); testo ruotato o verticale ignorato.
+- **Traduzione «Chrome offline» non disponibile sul tablet:** l'API Translator di Chrome c'è solo su computer, e Android 9 non riceve Chrome oltre la 138: aggiornare non basta. Serve un'altra strada (decisione dell'utente aperta).

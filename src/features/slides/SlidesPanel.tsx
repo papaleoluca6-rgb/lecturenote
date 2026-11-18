@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import type { Id, Sec, Slide } from '../../db/schema'
 import { deleteDeck, firstShown, importFiles, listSlides } from './data'
 import { SlideViewer } from './SlideViewer'
@@ -7,6 +7,10 @@ import { Thumbs } from './Thumbs'
 import { useSlidePins } from './usePins'
 import './slides.css'
 import { Icon } from '../../lib/Icon'
+import type { LessonAudio } from '../../lib/lessonAudio'
+import { SlideAudio } from './SlideAudio'
+import { useAudioSync } from './useAudioSync'
+import { useFullscreen } from './useFullscreen'
 
 interface Props {
   lessonId: Id
@@ -16,22 +20,30 @@ interface Props {
   now: () => Sec
   /** Livello da sovrapporre alla slide corrente (la penna, composta da app/). */
   overlay?: (slide: Slide) => ReactNode
+  /** Lettore della lezione (da app/): fuori registrazione si riascolta dalle slide. */
+  player?: LessonAudio
 }
 
 /** Slide della lezione: import PDF/immagini, viewer, miniature, aggancio al tempo durante la registrazione. */
-export function SlidesPanel({ lessonId, recording, now, overlay }: Props) {
+export function SlidesPanel({ lessonId, recording, now, overlay, player }: Props) {
   const slides = useLiveQuery(() => listSlides(lessonId), [lessonId])
   const shown = useLiveQuery(() => firstShown(lessonId), [lessonId]) ?? new Map<Id, Sec>()
   const [currentId, setCurrentId] = useState<Id>()
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [thumbs, setThumbs] = useState(false)
+  const [follow, setFollow] = useState(false)
+  // Registrando «L'audio segue le slide» si spegne: allo stop l'audio non deve partire da solo.
+  if (recording && follow) setFollow(false)
+  const rootRef = useRef<HTMLElement>(null)
+  const [full, toggleFull] = useFullscreen(rootRef)
 
   const list = slides ?? []
   const found = list.findIndex((s) => s.id === currentId)
   const index = found >= 0 ? found : 0
   const slide = list[index]
   useSlidePins(lessonId, slide?.id, recording, now)
+  useAudioSync(lessonId, player, follow && !recording, slide?.id, setCurrentId)
 
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return
@@ -62,7 +74,7 @@ export function SlidesPanel({ lessonId, recording, now, overlay }: Props) {
   )
 
   return (
-    <section className="sl" aria-label="Slide">
+    <section ref={rootRef} className={`sl${full ? ' full' : ''}`} aria-label="Slide">
       {!slide && (
         <header className="sl-bar">
           <h2 className="sl-title">Slide</h2>
@@ -83,15 +95,23 @@ export function SlidesPanel({ lessonId, recording, now, overlay }: Props) {
             overlay={overlay?.(slide)}
             tools={
               <>
-                <span className="sl-deck" title={slide.deckName}>{slide.deckName}</span>
-                {recording && <span className="ui-badge rec" title="Cambi di slide agganciati al tempo"><Icon name="clock" size={14} /> agganciate</span>}
-                <button className="ui-btn icon-only" aria-pressed={thumbs} onClick={() => setThumbs(!thumbs)} aria-label="Miniature" title="Miniature"><Icon name="grid" /></button>
-                {importBtn}
-                {!busy && <button className="ui-btn icon-only danger" onClick={() => void removeDeck()} aria-label="Elimina presentazione" title="Elimina presentazione"><Icon name="trash" /></button>}
+                {!full && <span className="sl-deck" title={slide.deckName}>{slide.deckName}</span>}
+                {recording && !full && <span className="ui-badge rec" title="Cambi di slide agganciati al tempo"><Icon name="clock" size={14} /> agganciate</span>}
+                {!recording && player && <SlideAudio player={player} at={shown.get(slide.id)} follow={follow} onFollow={() => setFollow(!follow)} />}
+                {!full && (
+                  <>
+                    <button className="ui-btn icon-only" aria-pressed={thumbs} onClick={() => setThumbs(!thumbs)} aria-label="Miniature" title="Miniature"><Icon name="grid" /></button>
+                    {importBtn}
+                    {!busy && <button className="ui-btn icon-only danger" onClick={() => void removeDeck()} aria-label="Elimina presentazione" title="Elimina presentazione"><Icon name="trash" /></button>}
+                  </>
+                )}
+                <button className="ui-btn icon-only" aria-pressed={full} onClick={toggleFull} aria-label={full ? 'Esci dallo schermo intero' : 'Schermo intero'} title={full ? 'Esci dallo schermo intero' : 'Schermo intero: solo la slide'}>
+                  <Icon name={full ? 'shrink' : 'expand'} />
+                </button>
               </>
             }
           />
-          {thumbs && <Thumbs slides={list} current={index} shown={shown} onPick={(i) => setCurrentId(list[i].id)} />}
+          {thumbs && !full && <Thumbs slides={list} current={index} shown={shown} onPick={(i) => setCurrentId(list[i].id)} />}
         </>
       ) : (
         slides && !busy && <div className="ui-empty"><Icon name="slides" size={32} /><p>Importa le slide del docente (PDF o foto): durante la registrazione ogni cambio di slide resta legato al punto dell'audio.</p></div>

@@ -10,6 +10,7 @@ import { SlidesPanel } from '../features/slides/SlidesPanel'
 import { ReviewPanel } from '../features/study/ReviewPanel'
 import { CaptionsPanel } from '../features/translation/live/CaptionsPanel'
 import { Icon, type IconName } from '../lib/Icon'
+import { useLessonAudio } from '../lib/useLessonAudio'
 
 type Tab = 'slides' | 'notebook' | 'notes' | 'captions' | 'review'
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
@@ -20,7 +21,6 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'review', label: 'Ripasso', icon: 'book' },
 ]
 
-/** Pannelli della lezione sotto il registratore. Le feature si compongono qui (non si importano tra loro). */
 /** Schermo intero di sistema (nasconde le barre di Android): facoltativo, se non riesce resta la modalità foglio. */
 function fullscreen(on: boolean) {
   try {
@@ -36,6 +36,8 @@ export function LessonPanels({ lessonId, clock }: { lessonId: Id; clock: LessonC
   const [tab, setTab] = useState<Tab>('slides')
   /** Modalità foglio: nasconde titolo e schede, la pagina prende tutto lo spazio. */
   const [focus, setFocus] = useState(false)
+  /** Un solo lettore per la lezione: lo usano il ripasso e le slide, e cambiando scheda l'audio continua. */
+  const player = useLessonAudio(lessonId, clock.recording)
   const ink = tab === 'slides' || tab === 'notebook'
   // Se si esce dallo schermo intero da fuori (tasto Indietro di Android), si esce anche dalla modalità foglio.
   useEffect(() => {
@@ -64,7 +66,8 @@ export function LessonPanels({ lessonId, clock }: { lessonId: Id; clock: LessonC
             lessonId={lessonId}
             recording={clock.recording}
             now={clock.now}
-            overlay={(slide) => <InkLayer lessonId={lessonId} target={{ slideId: slide.id }} width={slide.width} height={slide.height} now={clock.now} />}
+            player={player}
+            overlay={(slide) => <InkLayer lessonId={lessonId} target={{ slideId: slide.id }} width={slide.width} height={slide.height} now={clock.now} words={slide.words} />}
           />
         </div>
         <div className="lp-pane" hidden={tab !== 'notebook'}>
@@ -76,7 +79,7 @@ export function LessonPanels({ lessonId, clock }: { lessonId: Id; clock: LessonC
         <div className="lp-pane scroll" hidden={tab !== 'captions'}>
           <CaptionsPanel lessonId={lessonId} recording={clock.recording} running={clock.running} now={clock.now} stream={clock.stream} />
         </div>
-        {tab === 'review' && <div className="lp-pane scroll"><ReviewPanel lessonId={lessonId} recording={clock.recording} /></div>}
+        {tab === 'review' && <div className="lp-pane scroll"><ReviewPanel lessonId={lessonId} recording={clock.recording} player={player} /></div>}
       </div>
     </div>
   )
