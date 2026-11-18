@@ -1,15 +1,16 @@
 .notes { display: grid; gap: 12px; }
-.notes-form { display: grid; gap: 8px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 10px; }
+.notes-form { display: grid; gap: 10px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px; }
 .notes-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.note-text { width: 100%; resize: vertical; background: var(--s2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px; font: inherit; }
-.notes-error { color: var(--rec); }
+.note-text { width: 100%; resize: vertical; background: var(--s2); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px; font: inherit; font-size: var(--fs-md); line-height: 1.5; }
+.note-text:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+.notes-error { color: var(--rec); font-size: var(--fs-sm); }
 .notes-list { list-style: none; display: grid; gap: 8px; }
-.note-item { display: flex; gap: 10px; align-items: flex-start; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 10px; }
-.note-ts { font-family: var(--mono); color: var(--t2); min-width: 52px; padding-top: 10px; }
-.note-body { flex: 1; display: grid; gap: 8px; min-width: 0; }
-.note-thumb { border: 0; padding: 0; background: none; cursor: pointer; justify-self: start; border-radius: 10px; overflow: hidden; min-height: var(--tap); min-width: var(--tap); }
+.note-item { display: flex; gap: 12px; align-items: flex-start; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 10px 6px 10px 12px; }
+.note-ts { flex: none; margin-top: 8px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-family: var(--mono); font-size: var(--fs-xs); font-weight: 600; }
+.note-body { flex: 1; display: grid; gap: 8px; min-width: 0; padding-top: 6px; line-height: 1.5; overflow-wrap: anywhere; }
+.note-thumb { border: 0; padding: 0; background: none; cursor: pointer; justify-self: start; border-radius: var(--r-sm); overflow: hidden; min-height: var(--tap); min-width: var(--tap); }
 .note-thumb img { display: block; max-width: 160px; max-height: 120px; }
 .note-viewer { position: fixed; inset: 0; z-index: 100; background: var(--scrim); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 12px; }
 .note-viewer img { max-width: 100%; max-height: calc(100% - 64px); object-fit: contain; }
-.note-del { min-height: var(--tap); min-width: var(--tap); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--t2); cursor: pointer; display: grid; place-items: center; }
-.note-del:active { background: var(--s2); color: var(--rec); }
+.note-del { min-height: var(--tap); min-width: var(--tap); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--t3); cursor: pointer; display: grid; place-items: center; }
+.note-del:hover, .note-del:active { background: var(--rec-soft); color: var(--rec); }

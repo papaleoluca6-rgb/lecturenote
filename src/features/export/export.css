@@ -1,0 +1,6 @@
+.exp-help { color: var(--t2); font-size: var(--fs-sm, 14px); margin: 0; }
+.exp-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.exp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.exp-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.exp-progress span { flex: 1 1 100%; color: var(--t2); font-size: var(--fs-sm, 14px); }
+.exp-progress progress { flex: 1 1 160px; height: 8px; accent-color: var(--accent); }

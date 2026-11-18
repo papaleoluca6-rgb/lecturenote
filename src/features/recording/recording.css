@@ -1,24 +1,30 @@
-.rec { padding: max(var(--pad), env(safe-area-inset-top)) var(--pad) var(--pad); display: grid; gap: 14px; align-content: start; max-width: 1280px; margin: 0 auto; }
-.rec-top { display: flex; align-items: center; gap: 8px; }
-.rec-title { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.rec-input { min-height: var(--tap); padding: 0 10px; margin-left: -10px; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; width: 100%; text-overflow: ellipsis; transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
-.rec-input:hover { border-color: var(--border); }
-.rec-input:focus { outline: 2px solid var(--accent); outline-offset: 0; background: var(--s1); }
-.rec-course { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); font-size: 14px; }
-.rec-course i { width: 10px; height: 10px; border-radius: 50%; }
+/* La lezione occupa tutto lo schermo: barra in alto, sotto l'area di lavoro che riempie lo spazio rimasto. */
+.rec { height: 100dvh; display: flex; flex-direction: column; gap: 8px; padding: max(8px, env(safe-area-inset-top)) clamp(8px, 1.6vw, 20px) max(8px, env(safe-area-inset-bottom)); max-width: 1600px; margin: 0 auto; }
+.rec > .ui-muted { padding: 16px; }
 
-/* Barra del registratore: resta in alto mentre si scorre tra slide e note */
-.rec-bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 10px 12px 10px 20px; background: var(--s1); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow); transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
-.rec-bar.recording { border-color: var(--rec); background: linear-gradient(90deg, var(--rec-soft), var(--s1) 60%); }
-.rec-bar.paused { border-color: var(--warn); }
-.rec-status { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 220px; }
-.rec-state { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; min-width: 140px; }
-.rec-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--t3); }
-.rec-bar.recording .rec-dot { background: var(--rec); animation: rec-pulse 1.4s var(--ease) infinite; }
-.rec-bar.recording .rec-state { color: var(--rec); }
-.rec-bar.paused .rec-dot { background: var(--warn); }
-.rec-bar.paused .rec-state { color: var(--warn); }
-.rec-timer { font-size: clamp(36px, 6vw, 52px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
-.rec-controls { display: flex; gap: 10px; flex-wrap: wrap; }
-.rec-hint { flex-basis: 100%; color: var(--t2); font-size: 14px; }
-@keyframes rec-pulse { 0% { box-shadow: 0 0 0 0 var(--rec-soft); } 50% { opacity: 0.55; box-shadow: 0 0 0 8px transparent; } }
+.rec-head { flex: none; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 4px 6px 4px 2px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
+.rec-head.recording { border-color: color-mix(in srgb, var(--rec) 55%, transparent); background: linear-gradient(90deg, var(--s1) 30%, var(--rec-soft)); }
+.rec-head.paused { border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+
+.rec-title { flex: 1; min-width: 160px; display: grid; gap: 0; }
+.rec-input { min-height: 34px; padding: 0 8px; margin-left: -8px; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; width: 100%; text-overflow: ellipsis; transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
+.rec-input:hover { border-color: var(--border); }
+.rec-input:focus { outline: 2px solid var(--accent); outline-offset: 0; background: var(--s2); }
+.rec-course { display: inline-flex; align-items: center; gap: 6px; color: var(--t2); font-size: var(--fs-xs); font-weight: 500; }
+.rec-course i { width: 8px; height: 8px; border-radius: 50%; }
+
+.rec-status { display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 44px; border-radius: 14px; background: var(--s2); }
+.rec-state { color: var(--t2); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--t3); flex: none; }
+.rec-timer { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; min-width: 4.2ch; text-align: right; }
+.rec-head.recording .rec-status { background: var(--rec-soft); }
+.rec-head.recording .rec-dot { background: var(--rec); animation: rec-pulse 1.4s var(--ease) infinite; }
+.rec-head.recording .rec-state { color: var(--rec); }
+.rec-head.paused .rec-dot { background: var(--warn); }
+.rec-head.paused .rec-state { color: var(--warn); }
+.rec-controls { display: flex; gap: 6px; }
+.rec-hint { flex-basis: 100%; color: var(--t2); font-size: var(--fs-sm); padding: 0 12px 6px; }
+@keyframes rec-pulse { 0% { box-shadow: 0 0 0 0 var(--rec-soft); } 50% { opacity: 0.5; box-shadow: 0 0 0 7px transparent; } }
+
+/* Schermo stretto (verticale): titolo su una riga intera */
+@media (max-width: 640px) { .rec-title { flex-basis: calc(100% - 60px); } .rec-status { margin-left: auto; } }

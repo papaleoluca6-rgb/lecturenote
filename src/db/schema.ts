@@ -82,6 +82,9 @@ export interface Stroke {
   ts: Sec
 }
 
+/** Tipo di foglio delle pagine bianche. */
+export type Paper = 'blank' | 'lines' | 'grid'
+
 /** Pagina di scrittura a mano: bianca oppure sopra una slide (slideId). */
 export interface InkPage {
   id: Id
@@ -89,6 +92,8 @@ export interface InkPage {
   slideId?: Id
   order: number
   strokes: Stroke[]
+  /** Solo pagine bianche: bianco (default), a righe o a quadretti. Campo non indicizzato: nessuna nuova versione. */
+  paper?: Paper
 }
 
 export interface TranscriptSegment {

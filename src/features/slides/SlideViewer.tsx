@@ -12,10 +12,12 @@ interface Props {
   onGo: (index: number) => void
   /** Livello sopra la slide (penna): segue zoom e spostamento perché sta nello stesso riquadro. */
   overlay?: ReactNode
+  /** Altri comandi nella stessa riga di ‹ ›, per lasciare più spazio alla slide. */
+  tools?: ReactNode
 }
 
 /** Slide grande: pizzico per lo zoom, doppio tocco, scorrimento laterale o frecce per sfogliare. */
-export function SlideViewer({ slide, index, total, onGo, overlay }: Props) {
+export function SlideViewer({ slide, index, total, onGo, overlay, tools }: Props) {
   const url = useBlobUrl(slide.id, slide.image)
   const stageRef = useRef<HTMLDivElement>(null)
   const fit = useFitSize(stageRef, slide.width, slide.height)
@@ -30,6 +32,8 @@ export function SlideViewer({ slide, index, total, onGo, overlay }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      // Il pannello resta montato anche su altre schede: senza questo controllo le frecce sfoglierebbero (e aggancerebbero) slide invisibili.
+      if (!stageRef.current?.offsetParent) return
       if (e.key === 'ArrowRight' || e.key === 'PageDown') go(1)
       if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1)
     }
@@ -50,8 +54,9 @@ export function SlideViewer({ slide, index, total, onGo, overlay }: Props) {
       <div className="sl-nav">
         <button className="ui-btn icon-only" onClick={() => go(-1)} disabled={index === 0} aria-label="Slide precedente"><Icon name="prev" /></button>
         <span className="sl-count mono">{index + 1} / {total}</span>
-        {zoom.zoomed && <button className="ui-btn" onClick={reset}>Adatta</button>}
         <button className="ui-btn icon-only" onClick={() => go(1)} disabled={index === total - 1} aria-label="Slide successiva"><Icon name="next" /></button>
+        {zoom.zoomed && <button className="ui-btn" onClick={reset}><Icon name="shrink" /> Adatta</button>}
+        {tools}
       </div>
     </div>
   )

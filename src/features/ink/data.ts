@@ -1,4 +1,5 @@
-import { db, newId, type Id, type InkPage, type Stroke } from '../../db/schema'
+import { getTool, setTool } from './toolStore'
+import { db, newId, type Id, type InkPage, type Paper, type Stroke } from '../../db/schema'
 
 /** Dove si scrive: sopra una slide, oppure su una pagina bianca già esistente. */
 export type InkTarget = { slideId: Id } | { pageId: Id }
@@ -33,13 +34,26 @@ export async function removeStrokes(pageId: Id, drop: Set<number>): Promise<void
   })
 }
 
-/** Annulla l'ultimo tratto della pagina. */
-export async function undoLast(pageId: Id): Promise<void> {
-  await db.transaction('rw', db.ink, async () => {
+/** Annulla l'ultimo tratto della pagina e lo restituisce (per «Ripeti»). */
+export async function undoLast(pageId: Id): Promise<Stroke | undefined> {
+  return db.transaction('rw', db.ink, async () => {
     const page = await db.ink.get(pageId)
-    if (page?.strokes.length) await db.ink.update(pageId, { strokes: page.strokes.slice(0, -1) })
+    if (!page?.strokes.length) return undefined
+    await db.ink.update(pageId, { strokes: page.strokes.slice(0, -1) })
+    return page.strokes.at(-1)
   })
 }
+
+/** Rimette un tratto tolto con «Annulla». */
+export async function redoStroke(pageId: Id, stroke: Stroke): Promise<void> {
+  await db.transaction('rw', db.ink, async () => {
+    const page = await db.ink.get(pageId)
+    if (page) await db.ink.update(pageId, { strokes: [...page.strokes, stroke] })
+  })
+}
+
+/** Cambia il tipo di foglio di una pagina bianca. */
+export const setPaper = (pageId: Id, paper: Paper) => db.ink.update(pageId, { paper })
 
 /** Pagine bianche della lezione, in ordine. */
 export async function blankPages(lessonId: Id): Promise<InkPage[]> {
@@ -47,11 +61,18 @@ export async function blankPages(lessonId: Id): Promise<InkPage[]> {
   return pages.sort((a, b) => a.order - b.order)
 }
 
+/** Nuova pagina bianca, con lo stesso tipo di foglio dell'ultima. */
 export async function addBlankPage(lessonId: Id): Promise<Id> {
   const pages = await blankPages(lessonId)
   const id = newId()
-  await db.ink.add({ id, lessonId, order: (pages.at(-1)?.order ?? -1) + 1, strokes: [] })
+  const last = pages.at(-1)
+  await db.ink.add({ id, lessonId, order: (last?.order ?? -1) + 1, strokes: [], paper: last?.paper })
   return id
 }
 
-export const deletePage = (pageId: Id) => db.ink.delete(pageId)
+/** Elimina la pagina; «Annulla» e «Ripeti» non devono più puntare lì. */
+export async function deletePage(pageId: Id): Promise<void> {
+  await db.ink.delete(pageId)
+  const t = getTool()
+  setTool({ lastPageId: t.lastPageId === pageId ? undefined : t.lastPageId, redo: t.redo.filter((r) => r.pageId !== pageId) })
+}

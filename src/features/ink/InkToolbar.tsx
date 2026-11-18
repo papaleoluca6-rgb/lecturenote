@@ -1,61 +1,126 @@
+import { Icon, type IconName } from '../../lib/Icon'
+import { redoStroke, undoLast } from './data'
 import { HIGHLIGHTER_SIZE, SIZES } from './freehand'
-import { undoLast } from './data'
-import { setTool, useInkTool, type InkTool } from './toolStore'
+import { getTool, setTool, useInkTool, type InkTool } from './toolStore'
 import './ink.css'
-import { Icon } from '../../lib/Icon'
 
-const PEN_COLORS = ['--ink-black', '--ink-blue', '--ink-red', '--ink-green']
-const HL_COLORS = ['--ink-hl-yellow', '--ink-hl-green']
+const PEN_COLORS = ['--ink-black', '--ink-blue', '--ink-red', '--ink-green', '--ink-purple', '--ink-orange']
+const HL_COLORS = ['--ink-hl-yellow', '--ink-hl-green', '--ink-hl-pink', '--ink-hl-blue']
 const COLOR_NAME: Record<string, string> = {
   '--ink-black': 'nero',
   '--ink-blue': 'blu',
   '--ink-red': 'rosso',
   '--ink-green': 'verde',
+  '--ink-purple': 'viola',
+  '--ink-orange': 'arancione',
   '--ink-hl-yellow': 'giallo',
-  '--ink-hl-green': 'verde chiaro',
+  '--ink-hl-green': 'verde',
+  '--ink-hl-pink': 'rosa',
+  '--ink-hl-blue': 'azzurro',
+}
+const TOOLS: { id: InkTool; icon: IconName; label: string; title: string }[] = [
+  { id: 'pen', icon: 'pen', label: 'Penna', title: 'Penna' },
+  { id: 'highlighter', icon: 'highlighter', label: 'Evidenziatore', title: 'Evidenziatore' },
+  { id: 'eraser', icon: 'eraser', label: 'Gomma', title: 'Gomma (cancella tratti interi). Con la penna, tieni premuto il tasto della S Pen per cancellare al volo' },
+]
+
+/** Ultimo spessore della penna: l'evidenziatore ha il suo, tornando alla penna si riprende questo. */
+let penSize: number = SIZES.medio
+
+function pickTool(tool: InkTool) {
+  const t = getTool()
+  if (tool === 'pen') setTool({ tool, color: t.penColor, size: penSize })
+  else if (tool === 'highlighter') setTool({ tool, color: t.hlColor, size: HIGHLIGHTER_SIZE })
+  else setTool({ tool })
 }
 
-/** Strumenti della penna, condivisi da slide e pagine bianche. */
-export function InkToolbar() {
+function pickColor(color: string) {
+  setTool(getTool().tool === 'highlighter' ? { color, hlColor: color } : { color, penColor: color })
+}
+
+async function undo() {
+  const pageId = getTool().lastPageId
+  if (!pageId) return
+  const stroke = await undoLast(pageId)
+  if (stroke) setTool({ redo: [...getTool().redo, { pageId, stroke }] })
+}
+
+async function redo() {
+  const stack = getTool().redo
+  const last = stack.at(-1)
+  if (!last) return
+  setTool({ redo: stack.slice(0, -1) })
+  await redoStroke(last.pageId, last.stroke)
+  setTool({ lastPageId: last.pageId })
+}
+
+/** Strumenti della penna, condivisi da slide e pagine bianche: colonna a sinistra in orizzontale, riga in verticale. */
+export function InkToolbar({ focus, onFocus }: { focus: boolean; onFocus: () => void }) {
   const t = useInkTool()
-  const pick = (tool: InkTool, color?: string) =>
-    setTool({ tool, ...(color ? { color } : {}), ...(tool === 'highlighter' ? { size: HIGHLIGHTER_SIZE } : tool === 'pen' && t.tool !== 'pen' ? { size: SIZES.medio } : {}) })
-  const colors = t.tool === 'highlighter' ? HL_COLORS : PEN_COLORS
+  const colors = t.tool === 'highlighter' ? HL_COLORS : t.tool === 'pen' ? PEN_COLORS : []
+  const fingerLabel = t.fingerDraws ? 'Il dito scrive' : 'Il dito sfoglia'
 
   return (
     <div className="ink-bar" role="toolbar" aria-label="Strumenti penna">
-      <button className={`ink-btn${t.tool === 'pen' ? ' on' : ''}`} onClick={() => pick('pen', PEN_COLORS.includes(t.color) ? undefined : PEN_COLORS[0])}><Icon name="pen" /> Penna</button>
-      <button className={`ink-btn${t.tool === 'highlighter' ? ' on' : ''}`} onClick={() => pick('highlighter', HL_COLORS.includes(t.color) ? undefined : HL_COLORS[0])}><Icon name="highlighter" /> Evidenziatore</button>
-      <button className={`ink-btn${t.tool === 'eraser' ? ' on' : ''}`} onClick={() => pick('eraser')}><Icon name="eraser" /> Gomma</button>
-      {t.tool !== 'eraser' && (
-        <>
-          <span className="ink-sep" aria-hidden />
-          {colors.map((c) => (
-            <button key={c} className={`ink-btn${t.color === c ? ' on' : ''}`} onClick={() => setTool({ color: c })} aria-label={`Colore ${COLOR_NAME[c]}`}>
-              <span className="ink-swatch" style={{ background: `var(${c})` }} />
-            </button>
-          ))}
-        </>
-      )}
-      {t.tool === 'pen' && (
-        <>
-          <span className="ink-sep" aria-hidden />
-          {Object.entries(SIZES).map(([name, size]) => (
-            <button key={name} className={`ink-btn${t.size === size ? ' on' : ''}`} onClick={() => setTool({ size })} aria-label={`Tratto ${name}`}>
-              <span className="ink-dot" style={{ width: size * 1.6 + 2, height: size * 1.6 + 2 }} />
-            </button>
-          ))}
-        </>
-      )}
-      <span className="ink-sep" aria-hidden />
-      <button className="ink-btn" disabled={!t.lastPageId} onClick={() => t.lastPageId && void undoLast(t.lastPageId)}><Icon name="undo" /> Annulla</button>
+      {TOOLS.map((x) => (
+        <button key={x.id} className="ui-btn icon-only ink-btn" aria-pressed={t.tool === x.id} aria-label={x.label} title={x.id === 'pen' && t.penSeen ? 'Penna (S Pen rilevata: il dito sfoglia, il palmo viene ignorato)' : x.title} onClick={() => pickTool(x.id)}>
+          <Icon name={x.icon} />
+          {/* Segnale discreto: la S Pen è stata rilevata (il dito ora sfoglia, il palmo viene ignorato). */}
+          {x.id === 'pen' && t.penSeen && <span className="ink-pen-dot" aria-hidden />}
+        </button>
+      ))}
       <button
-        className={`ink-btn${t.fingerDraws ? ' on' : ''}`}
-        onClick={() => setTool({ fingerDraws: !t.fingerDraws })}
+        className="ui-btn icon-only ink-btn"
         aria-pressed={t.fingerDraws}
-        title="Spento: il dito sfoglia e fa zoom, scrive solo la penna"
+        aria-label={fingerLabel}
+        title={t.fingerDraws ? 'Il dito scrive: tocca perché il dito sfogli e faccia zoom' : 'Il dito sfoglia e fa zoom, scrive solo la penna: tocca per scrivere anche col dito'}
+        onClick={() => setTool({ fingerDraws: !t.fingerDraws })}
       >
-        <Icon name="hand" /> {t.fingerDraws ? 'Il dito scrive' : 'Il dito sfoglia'}
+        <Icon name="hand" />
+      </button>
+
+      {colors.length > 0 && <span className="ink-sep" aria-hidden />}
+      {colors.map((c) => (
+        <button key={c} className="ui-btn icon-only ink-btn ink-sw" aria-pressed={t.color === c} aria-label={`Colore ${COLOR_NAME[c]}`} title={`Colore ${COLOR_NAME[c]}`} onClick={() => pickColor(c)}>
+          <span className="ink-swatch" style={{ background: `var(${c})` }} />
+        </button>
+      ))}
+
+      {t.tool === 'pen' && <span className="ink-sep" aria-hidden />}
+      {t.tool === 'pen' &&
+        Object.entries(SIZES).map(([name, size]) => (
+          <button
+            key={name}
+            className="ui-btn icon-only ink-btn"
+            aria-pressed={t.size === size}
+            aria-label={`Tratto ${name}`}
+            title={`Tratto ${name}`}
+            onClick={() => {
+              penSize = size
+              setTool({ size })
+            }}
+          >
+            <span className="ink-dot" style={{ width: size * 1.6 + 2, height: size * 1.6 + 2 }} />
+          </button>
+        ))}
+
+      <span className="ink-sep" aria-hidden />
+      <button className="ui-btn icon-only ink-btn" disabled={!t.lastPageId} aria-label="Annulla" title="Annulla l’ultimo tratto" onClick={() => void undo()}>
+        <Icon name="undo" />
+      </button>
+      <button className="ui-btn icon-only ink-btn" disabled={!t.redo.length} aria-label="Ripeti" title="Ripeti il tratto annullato" onClick={() => void redo()}>
+        <Icon name="redo" />
+      </button>
+
+      <span className="ink-sep" aria-hidden />
+      <button
+        className="ui-btn icon-only ink-btn"
+        aria-pressed={focus}
+        aria-label={focus ? 'Esci dalla modalità foglio' : 'Modalità foglio'}
+        title={focus ? 'Esci dalla modalità foglio' : 'Modalità foglio: la pagina occupa tutto lo schermo'}
+        onClick={onFocus}
+      >
+        <Icon name={focus ? 'shrink' : 'expand'} />
       </button>
     </div>
   )

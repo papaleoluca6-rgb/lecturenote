@@ -28,3 +28,6 @@ public/pdfjs
 
 # workspace dei sub-agenti (superpowers)
 .superpowers/
+
+# File dei test con Playwright (log, download)
+.playwright-mcp/

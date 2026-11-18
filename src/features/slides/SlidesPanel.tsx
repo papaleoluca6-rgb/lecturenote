@@ -25,6 +25,7 @@ export function SlidesPanel({ lessonId, recording, now, overlay }: Props) {
   const [currentId, setCurrentId] = useState<Id>()
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const [thumbs, setThumbs] = useState(false)
 
   const list = slides ?? []
   const found = list.findIndex((s) => s.id === currentId)
@@ -53,24 +54,44 @@ export function SlidesPanel({ lessonId, recording, now, overlay }: Props) {
     setCurrentId(undefined)
   }
 
+  const importBtn = (
+    <label className={`ui-btn${slide ? ' icon-only' : ' primary'}${busy ? ' disabled' : ''}`} aria-label="Importa PDF o immagini" title="Importa PDF o immagini">
+      <Icon name="upload" />{!slide && ' PDF o immagini'}
+      <input type="file" accept="application/pdf,.pdf,image/*" multiple hidden disabled={!!busy} onChange={(e) => { void onFiles(e.target.files); e.target.value = '' }} />
+    </label>
+  )
+
   return (
     <section className="sl" aria-label="Slide">
-      <header className="sl-bar">
-        <h2 className="sl-title">{slide ? slide.deckName : "Slide"}</h2>
-        {recording && slide && <span className="ui-badge rec">Cambi di slide agganciati al tempo</span>}
-        <label className={`ui-btn primary${busy ? ' disabled' : ''}`}>
-          <Icon name="upload" /> PDF o immagini
-          <input type="file" accept="application/pdf,.pdf,image/*" multiple hidden disabled={!!busy} onChange={(e) => { void onFiles(e.target.files); e.target.value = '' }} />
-        </label>
-        {slide && !busy && <button className="ui-btn danger" onClick={() => void removeDeck()}><Icon name="trash" /> Elimina presentazione</button>}
-      </header>
+      {!slide && (
+        <header className="sl-bar">
+          <h2 className="sl-title">Slide</h2>
+          {importBtn}
+        </header>
+      )}
       {busy && <p className="sl-muted" role="status">{busy}</p>}
       {error && <p className="sl-error" role="alert">{error}</p>}
 
       {slide ? (
         <>
-          <SlideViewer key={slide.id} slide={slide} index={index} total={list.length} onGo={(i) => setCurrentId(list[i].id)} overlay={overlay?.(slide)} />
-          <Thumbs slides={list} current={index} shown={shown} onPick={(i) => setCurrentId(list[i].id)} />
+          <SlideViewer
+            key={slide.id}
+            slide={slide}
+            index={index}
+            total={list.length}
+            onGo={(i) => setCurrentId(list[i].id)}
+            overlay={overlay?.(slide)}
+            tools={
+              <>
+                <span className="sl-deck" title={slide.deckName}>{slide.deckName}</span>
+                {recording && <span className="ui-badge rec" title="Cambi di slide agganciati al tempo"><Icon name="clock" size={14} /> agganciate</span>}
+                <button className="ui-btn icon-only" aria-pressed={thumbs} onClick={() => setThumbs(!thumbs)} aria-label="Miniature" title="Miniature"><Icon name="grid" /></button>
+                {importBtn}
+                {!busy && <button className="ui-btn icon-only danger" onClick={() => void removeDeck()} aria-label="Elimina presentazione" title="Elimina presentazione"><Icon name="trash" /></button>}
+              </>
+            }
+          />
+          {thumbs && <Thumbs slides={list} current={index} shown={shown} onPick={(i) => setCurrentId(list[i].id)} />}
         </>
       ) : (
         slides && !busy && <div className="ui-empty"><Icon name="slides" size={32} /><p>Importa le slide del docente (PDF o foto): durante la registrazione ogni cambio di slide resta legato al punto dell'audio.</p></div>

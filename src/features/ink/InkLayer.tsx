@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { memo, useEffect, useMemo } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import type { Id, Sec, Stroke } from '../../db/schema'
 import { findPage, type InkTarget } from './data'
 import { VB_W, strokePath } from './freehand'
@@ -15,8 +15,8 @@ interface Props {
   now: () => Sec
 }
 
-function StrokePath({ s, vbH, done = true }: { s: Stroke; vbH: number; done?: boolean }) {
-  return <path d={strokePath(s, vbH, done)} fill={s.color} opacity={s.tool === 'highlighter' ? 0.4 : 1} />
+function StrokePath({ s, vbH }: { s: Stroke; vbH: number }) {
+  return <path d={strokePath(s, vbH)} fill={s.color} opacity={s.tool === 'highlighter' ? 0.4 : 1} />
 }
 
 /** Tratti già salvati: memorizzati, così disegnare non ricalcola tutta la pagina a ogni movimento. */
@@ -30,16 +30,18 @@ export function InkLayer({ lessonId, target, width, height, now }: Props) {
   const pageId = 'pageId' in target ? target.pageId : undefined
   const page = useLiveQuery(() => findPage(slideId ? { slideId } : { pageId: pageId ?? '' }), [slideId, pageId])
   const vbH = (VB_W * height) / width
-  const ink = useInkInput(lessonId, target, page, vbH, now)
-  const { settle } = ink
-  useEffect(settle, [page, settle])
+  const live = useRef<SVGPathElement>(null)
+  const cursor = useRef<SVGCircleElement>(null)
+  const refs = useMemo(() => ({ live, cursor }), [])
+  const ink = useInkInput(lessonId, target, page, vbH, now, refs)
   const strokes = useMemo(() => page?.strokes ?? [], [page])
 
   return (
     <svg className="ink-layer" viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" {...ink.handlers}>
       <Saved strokes={strokes} vbH={vbH} hidden={ink.hidden} />
       {ink.pending.map((s, i) => <StrokePath key={`p${i}`} s={s} vbH={vbH} />)}
-      {ink.live && <StrokePath s={ink.live} vbH={vbH} done={false} />}
+      <path ref={live} className="ink-live" />
+      <circle ref={cursor} className="ink-cursor" style={{ display: 'none' }} />
     </svg>
   )
 }

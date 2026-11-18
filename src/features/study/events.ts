@@ -1,3 +1,4 @@
+import { slideNumbers } from '../../lib/slideNumbers'
 import { db, type Id, type Sec } from '../../db/schema'
 
 export type EventKind = 'note' | 'slide' | 'phrase' | 'ink'
@@ -22,13 +23,14 @@ export async function loadTimeline(lessonId: Id): Promise<LessonEvent[]> {
     db.transcript.where(q).toArray(), db.translations.where(q).toArray(), db.ink.where(q).toArray(),
   ])
   const slideById = new Map(slides.map((s) => [s.id, s]))
+  const num = slideNumbers(slides)
   const trById = new Map(trs.map((t) => [t.transcriptId, t.text]))
   const events: LessonEvent[] = []
 
   for (const n of notes) events.push({ key: n.id, kind: 'note', ts: n.ts, title: n.photo ? 'Foto' : 'Nota', text: n.text, image: n.photo })
   for (const p of pins) {
     const s = slideById.get(p.slideId)
-    if (s) events.push({ key: p.id, kind: 'slide', ts: p.ts, title: `Slide ${s.page} · ${s.deckName}`, image: s.thumb ?? s.image })
+    if (s) events.push({ key: p.id, kind: 'slide', ts: p.ts, title: `Slide ${num.get(s.id)?.n ?? ''} · ${s.deckName}`, image: s.thumb ?? s.image })
   }
   for (const l of lines) {
     const it = trById.get(l.id)
@@ -38,7 +40,7 @@ export async function loadTimeline(lessonId: Id): Promise<LessonEvent[]> {
     if (!page.strokes.length) continue
     const ts = Math.min(...page.strokes.map((s) => s.ts))
     const s = page.slideId ? slideById.get(page.slideId) : undefined
-    events.push({ key: page.id, kind: 'ink', ts, title: s ? `Scritto sulla slide ${s.page}` : `Pagina a penna ${page.order + 1}` })
+    events.push({ key: page.id, kind: 'ink', ts, title: s ? `Scritto sulla slide ${num.get(s.id)?.n ?? ''}` : `Pagina a penna ${page.order + 1}` })
   }
   return events.sort((a, b) => a.ts - b.ts)
 }

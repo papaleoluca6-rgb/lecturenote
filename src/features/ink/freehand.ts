@@ -7,6 +7,10 @@ export const VB_W = 1000
 /** Spessori disponibili (unità su VB_W). */
 export const SIZES = { fine: 2.5, medio: 5, spesso: 10 } as const
 export const HIGHLIGHTER_SIZE = 24
+/** Raggio della gomma (unità su VB_W). */
+export const ERASER_R = 12
+/** Con la pressione vera, la S Pen leggera fa già un tratto pieno (curva che sale in fretta). */
+const penEasing = (t: number) => Math.sin((t * Math.PI) / 2)
 
 /** Tratto senza pressione reale (mouse, dito): tutti i punti a 0.5. */
 const noPressure = (s: Stroke) => s.points.every((p) => p[2] === 0.5)
@@ -27,12 +31,14 @@ function pathFromOutline(pts: number[][]): string {
 export function strokePath(s: Stroke, vbH: number, done = true): string {
   const pts = s.points.map(([x, y, p]) => [x * VB_W, y * vbH, p])
   const hl = s.tool === 'highlighter'
+  const simulated = noPressure(s)
   const outline = getStroke(pts, {
     size: s.size,
-    thinning: hl ? 0 : 0.6,
+    thinning: hl ? 0 : simulated ? 0.6 : 0.55,
     smoothing: 0.5,
-    streamline: 0.45,
-    simulatePressure: !hl && noPressure(s),
+    streamline: hl ? 0.5 : 0.35,
+    simulatePressure: !hl && simulated,
+    ...(!hl && !simulated ? { easing: penEasing } : {}),
     last: done,
   })
   return pathFromOutline(outline)

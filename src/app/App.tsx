@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Id } from '../db/schema'
 import { BackupPanel } from '../features/backup/BackupPanel'
+import { ExportDialog } from '../features/export/ExportDialog'
+import type { ExportTarget } from '../features/export/notebooklm'
 import { LibraryScreen } from '../features/library/LibraryScreen'
 import { LessonPanels } from './LessonPanels'
 import { RecordingScreen } from '../features/recording/RecordingScreen'
@@ -19,6 +21,7 @@ const useHash = () => {
 
 export function App() {
   const [lessonId, setLessonId] = useState<Id | null>(null)
+  const [exportTarget, setExportTarget] = useState<ExportTarget | null>(null)
   const hash = useHash()
   if (hash === '#prova') return <ProbeScreen onClose={() => (location.hash = '')} />
   if (hash === '#impostazioni') return <SettingsScreen onClose={() => (location.hash = '')}><BackupPanel /></SettingsScreen>
@@ -30,6 +33,9 @@ export function App() {
       panels={(clock) => <LessonPanels lessonId={lessonId} clock={clock} />}
     />
   ) : (
-    <LibraryScreen onOpenLesson={setLessonId} />
+    <>
+      <LibraryScreen onOpenLesson={setLessonId} onExport={setExportTarget} />
+      {exportTarget && <ExportDialog target={exportTarget} onClose={() => setExportTarget(null)} />}
+    </>
   )
 }

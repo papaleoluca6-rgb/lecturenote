@@ -1,14 +1,42 @@
-.ink-layer { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
-.ink-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 6px; }
-.ink-btn { min-height: var(--tap); min-width: var(--tap); padding: 0 12px; border-radius: 10px; border: 2px solid transparent; background: var(--s2); color: var(--text); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
-.ink-btn:active { background: var(--s3); }
-.ink-btn.on { border-color: var(--accent); background: var(--s3); }
-.ink-btn:disabled { opacity: 0.35; cursor: default; }
-.ink-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); }
+/* Livello di scrittura */
+.ink-layer { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; -webkit-touch-callout: none; }
+.ink-live, .ink-cursor { pointer-events: none; }
+.ink-cursor.eraser { stroke: var(--accent-bg); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+
+/* Barra degli strumenti: riga che va a capo (verticale), colonna a sinistra (orizzontale) */
+.ink-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 4px; min-width: 0; }
+.ink-bar .ink-btn { min-height: 44px; min-width: 44px; width: 44px; border-radius: var(--r-sm); border-width: 2px; border-color: transparent; background: transparent; color: var(--t2); }
+.ink-bar .ink-btn:hover { border-color: var(--border-strong); }
+.ink-bar .ink-btn[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+.ink-bar .ink-btn:disabled { opacity: 0.35; cursor: default; }
+.ink-sep { width: 1px; height: 28px; background: var(--border-strong); margin: 0 4px; flex: none; }
+
+/* Colori: cerchi pieni, anello quando scelti */
+.ink-bar .ink-sw[aria-pressed='true'] { border-color: transparent; background: transparent; }
+.ink-swatch { width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--border-strong); transition: box-shadow var(--dur) var(--ease); }
+.ink-sw[aria-pressed='true'] .ink-swatch { box-shadow: 0 0 0 2px var(--s1), 0 0 0 4px var(--accent); }
 .ink-dot { border-radius: 50%; background: var(--text); }
-.ink-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
-.ink-nb { display: grid; gap: 8px; }
-.ink-stage { height: clamp(240px, 62vh, 900px); background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
-.ink-paper { position: relative; background: var(--paper); border-radius: 4px; }
-.ink-nav { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
-.ink-count { color: var(--t2); min-width: 80px; text-align: center; }
+
+/* Segnale «S Pen rilevata»: puntino verde sul bottone della penna */
+.ink-bar .ink-btn { position: relative; }
+.ink-pen-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 2px var(--s1); }
+
+@media (orientation: landscape) and (min-width: 700px) {
+  .ink-bar { display: grid; grid-template-columns: repeat(3, 44px); grid-auto-rows: min-content; justify-items: center; align-content: start; gap: 4px 2px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .ink-sep { grid-column: 1 / -1; width: auto; justify-self: stretch; height: 1px; margin: 3px 6px; }
+}
+
+/* Pagine bianche: riempiono il riquadro */
+.ink-nb { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.ink-stage { flex: 1; min-height: 0; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ink-paper { position: relative; flex: none; background-color: var(--paper); border-radius: 4px; box-shadow: var(--shadow-sm), var(--shadow); }
+/* Righe e quadretti in proporzione alla pagina (16:10): 20 righe; quadretti 40 × 25, quadrati */
+.ink-paper.lines { background-image: linear-gradient(to bottom, transparent calc(100% - 1px), var(--paper-line) calc(100% - 1px)); background-size: 100% 5%; }
+.ink-paper.grid {
+  background-image: linear-gradient(to bottom, transparent calc(100% - 1px), var(--paper-line) calc(100% - 1px)), linear-gradient(to right, transparent calc(100% - 1px), var(--paper-line) calc(100% - 1px));
+  background-size: 2.5% 4%;
+}
+.ink-nav { flex: none; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.ink-nav .ui-btn { min-height: 44px; }
+.ink-nav-sep { width: 1px; height: 24px; background: var(--border-strong); margin: 0 4px; }
+.ink-count { color: var(--t2); min-width: 64px; text-align: center; }

@@ -1,44 +1,67 @@
 /* Token di design: usare SEMPRE queste variabili, mai colori scritti a mano nei componenti. */
 :root {
-  /* Superfici, dal fondo verso l'alto */
-  --bg: #0c0d12;
-  --s1: #15161e;
-  --s2: #1e1f2a;
-  --s3: #2a2b38;
-  --border: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.18);
-  /* Testo: --text 16:1, --t2 7:1 su --bg; --t3 solo per elementi decorativi */
-  --text: #f2f2f7;
-  --t2: #a6a8bb;
-  --t3: #6d6f82;
+  /* Superfici, dal fondo verso l'alto (blu inchiostro, non grigio piatto) */
+  --bg: #0a0c13;
+  --s1: #121522;
+  --s2: #1a1e2f;
+  --s3: #252a3f;
+  --s4: #30364f;
+  --border: rgba(150, 165, 220, 0.12);
+  --border-strong: rgba(150, 165, 220, 0.26);
+  /* Testo: --text 16:1, --t2 8:1 su --bg; --t3 solo per elementi decorativi */
+  --text: #eef0f8;
+  --t2: #a4aac4;
+  --t3: #6c7392;
   /* Colori di stato. *-bg = sfondo di un bottone con testo bianco (contrasto ≥ 4.5:1) */
-  --accent: #8b8cff;
-  --accent-bg: #5a5af0;
-  --accent-soft: rgba(122, 124, 255, 0.14);
-  --rec: #ff5c6c;
-  --rec-bg: #cf2c41;
-  --rec-soft: rgba(255, 92, 108, 0.13);
-  --ok: #3ddc97;
-  --ok-soft: rgba(61, 220, 151, 0.13);
-  --warn: #ffbe3d;
-  --warn-soft: rgba(255, 190, 61, 0.13);
+  --accent: #93a6ff;
+  --accent-bg: #4b62ee;
+  --accent-bg-2: #6a54e8;
+  --accent-soft: rgba(124, 145, 255, 0.16);
+  --rec: #ff6b72;
+  --rec-bg: #d43446;
+  --rec-soft: rgba(255, 107, 114, 0.14);
+  --ok: #4ade9b;
+  --ok-soft: rgba(74, 222, 155, 0.13);
+  --warn: #fbbf4b;
+  --warn-soft: rgba(251, 191, 75, 0.14);
   --on-color: #ffffff;
+  /* Colori dei corsi (uno per corso, a rotazione) */
+  --c1: #93a6ff;
+  --c2: #3fd4c4;
+  --c3: #fbbf4b;
+  --c4: #ff86b0;
+  --c5: #a5e05e;
+  --c6: #5cc4ff;
+  --c7: #c597ff;
   /* Penna: colori dell'inchiostro (su carta bianca) e della pagina */
   --paper: #ffffff;
-  --scrim: rgba(0, 0, 0, 0.92);
+  --paper-line: rgba(60, 90, 160, 0.13);
+  --scrim: rgba(4, 6, 12, 0.92);
   --ink-black: #1a1a24;
   --ink-blue: #1f4fd8;
   --ink-red: #d8253a;
   --ink-green: #12895a;
+  --ink-purple: #7b2fd0;
+  --ink-orange: #e5650f;
   --ink-hl-yellow: #ffe14d;
   --ink-hl-green: #7dffb0;
-  /* Misure */
+  --ink-hl-pink: #ff9ad5;
+  --ink-hl-blue: #8fd3ff;
+  /* Misure (tablet 8": ~960×600 in orizzontale) */
   --r: 14px;
   --r-sm: 10px;
+  --r-lg: 20px;
   --tap: 48px;
   --gap: 12px;
-  --pad: clamp(16px, 3vw, 28px);
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --pad: clamp(12px, 2.4vw, 28px);
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-lg: 19px;
+  --fs-xl: 24px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --glow: radial-gradient(900px 480px at 8% -12%, rgba(75, 98, 238, 0.16), transparent 70%), radial-gradient(700px 420px at 100% 0%, rgba(106, 84, 232, 0.1), transparent 70%);
   /* Movimento */
   --dur: 160ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -66,7 +89,8 @@ body {
   font-family: var(--font);
   font-size: 16px;
   line-height: 1.45;
-  background: var(--bg);
+  background: var(--glow), var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
@@ -84,22 +108,24 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .logo { font-size: 28px; font-weight: 800; letter-spacing: -0.04em; display: inline-flex; align-items: center; gap: 10px; }
 .logo em { color: var(--accent); font-style: normal; }
-.logo-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); color: var(--on-color); display: grid; place-items: center; }
+.logo-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-bg), var(--accent-bg-2)); color: var(--on-color); display: grid; place-items: center; box-shadow: 0 6px 18px rgba(75, 98, 238, 0.35); }
 .muted { color: var(--t2); }
 .mono { font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .icon { flex: none; display: block; }
 
 /* Schede (es. Slide / Pagine bianche / Note) */
-.tabs { display: flex; gap: 4px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 4px; overflow-x: auto; scrollbar-width: none; }
-.tab { flex: 1 0 auto; min-height: var(--tap); padding: 0 14px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--t2); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
+.tabs { display: flex; gap: 4px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 4px; overflow-x: auto; scrollbar-width: none; flex: none; }
+.tab { flex: 1 0 auto; min-height: 44px; padding: 0 14px; border: 0; border-radius: 16px; background: transparent; color: var(--t2); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
 .tab:active { background: var(--s2); }
-.tab.on { background: var(--s3); color: var(--text); }
+.tab.on { background: var(--s3); color: var(--text); box-shadow: inset 0 0 0 1px var(--border-strong), var(--shadow-sm); }
+.tab.on .icon { color: var(--accent); }
 
 /* Elementi condivisi tra schermate */
 .ui-page { padding: max(var(--pad), env(safe-area-inset-top)) var(--pad) var(--pad); display: grid; gap: 16px; align-content: start; max-width: 1200px; margin: 0 auto; }
 .ui-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .ui-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex: 1; }
-.ui-input { flex: 1; min-width: 180px; min-height: var(--tap); padding: 0 14px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s1); transition: border-color var(--dur) var(--ease); }
+.ui-input { flex: 1; min-width: 180px; min-height: var(--tap); padding: 0 14px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s1); transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
+.ui-input::placeholder { color: var(--t3); }
 textarea.ui-input { padding: 12px 14px; resize: vertical; }
 .ui-input:hover { border-color: var(--border-strong); }
 .ui-input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
@@ -107,22 +133,22 @@ textarea.ui-input { padding: 12px 14px; resize: vertical; }
 .ui-search .icon { position: absolute; left: 14px; top: 50%; translate: 0 -50%; color: var(--t2); pointer-events: none; }
 .ui-search .ui-input { padding-left: 44px; }
 
-.ui-btn { min-height: var(--tap); min-width: var(--tap); padding: 0 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s2); color: var(--text); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; white-space: nowrap; user-select: none; transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), opacity var(--dur) var(--ease); }
+.ui-btn { min-height: var(--tap); min-width: var(--tap); padding: 0 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s2); color: var(--text); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; white-space: nowrap; user-select: none; transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
 .ui-btn:hover { border-color: var(--border-strong); }
-.ui-btn:active { background: var(--s3); }
+.ui-btn:active { background: var(--s3); transform: scale(0.97); }
 .ui-btn:disabled, .ui-btn.disabled { opacity: 0.4; cursor: default; pointer-events: none; }
-.ui-btn.primary { background: var(--accent-bg); border-color: transparent; color: var(--on-color); font-weight: 600; }
+.ui-btn.primary { background: linear-gradient(135deg, var(--accent-bg), var(--accent-bg-2)); border-color: transparent; color: var(--on-color); font-weight: 600; box-shadow: 0 4px 14px rgba(75, 98, 238, 0.3); }
 .ui-btn.primary:active { filter: brightness(1.15); }
-.ui-btn.record { background: var(--rec-bg); border-color: transparent; color: var(--on-color); font-weight: 600; }
+.ui-btn.record { background: var(--rec-bg); border-color: transparent; color: var(--on-color); font-weight: 600; box-shadow: 0 4px 14px rgba(212, 52, 70, 0.32); }
 .ui-btn.record:active { filter: brightness(1.15); }
 .ui-btn.danger { color: var(--rec); }
 .ui-btn.ghost { background: transparent; border-color: transparent; color: var(--t2); }
 .ui-btn.ghost:active { background: var(--s2); }
 .ui-btn.icon-only { padding: 0; }
-.ui-btn.big { min-height: 64px; padding: 0 28px; font-size: 18px; font-weight: 600; border-radius: 18px; }
+.ui-btn.big { min-height: 56px; padding: 0 24px; font-size: 17px; font-weight: 600; border-radius: 16px; }
 .ui-btn.sm { min-height: 40px; min-width: 40px; padding: 0 12px; font-size: 14px; }
 
-.ui-card { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; }
+.ui-card { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
 .ui-muted { color: var(--t2); font-size: 14px; }
 .ui-error { color: var(--rec); }
 .ui-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
@@ -140,3 +166,12 @@ textarea.ui-input { padding: 12px 14px; resize: vertical; }
 /* Niente ritardo del doppio tocco sui comandi; select scure anche con il tema chiaro di sistema */
 button, a, label, select, input, summary { touch-action: manipulation; }
 select { background-color: var(--s1); color: var(--text); }
+
+/* Finestra di dialogo (es. esportazione) */
+.ui-dialog { position: fixed; inset: 0; z-index: 100; background: var(--scrim); display: grid; place-items: center; padding: 16px; }
+.ui-dialog-box { width: min(560px, 100%); max-height: 100%; overflow: auto; background: var(--s1); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 20px; display: grid; gap: 14px; box-shadow: var(--shadow); }
+.ui-dialog-box h2 { font-size: var(--fs-lg); display: flex; align-items: center; gap: 10px; }
+.ui-check { display: flex; gap: 12px; align-items: center; min-height: var(--tap); padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--s2); cursor: pointer; }
+.ui-check input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.ui-check span { display: grid; gap: 2px; }
+.ui-check small { color: var(--t2); }

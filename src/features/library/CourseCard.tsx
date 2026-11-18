@@ -6,7 +6,7 @@ import { deleteCourse, deleteLesson, formatDate, renameCourse, type CourseGroup 
 
 const LANG_LABEL = { 'zh+en': '中/EN', zh: '中文', en: 'EN', it: 'IT' } as const
 
-function LessonRow({ lesson, onOpen }: { lesson: Lesson; onOpen: () => void }) {
+function LessonRow({ lesson, onOpen, onExport }: { lesson: Lesson; onOpen: () => void; onExport?: () => void }) {
   const remove = () => {
     if (confirm(`Eliminare la lezione «${lesson.title}» con audio, slide, note e scritti? Non si può annullare.`)) void deleteLesson(lesson.id)
   }
@@ -21,6 +21,11 @@ function LessonRow({ lesson, onOpen }: { lesson: Lesson; onOpen: () => void }) {
           <span className="ui-badge">{LANG_LABEL[lesson.spokenLang]}</span>
         </span>
       </button>
+      {onExport && (
+        <button className="ui-btn ghost icon-only" onClick={onExport} aria-label={`Esporta la lezione ${lesson.title} per NotebookLM`}>
+          <Icon name="export" size={18} />
+        </button>
+      )}
       <button className="ui-btn ghost icon-only" onClick={remove} aria-label={`Elimina la lezione ${lesson.title}`}>
         <Icon name="trash" size={18} />
       </button>
@@ -28,7 +33,9 @@ function LessonRow({ lesson, onOpen }: { lesson: Lesson; onOpen: () => void }) {
   )
 }
 
-export function CourseCard({ group, onOpenLesson }: { group: CourseGroup; onOpenLesson: (id: Id) => void }) {
+export type ExportRequest = { courseId: Id } | { lessonId: Id }
+
+export function CourseCard({ group, onOpenLesson, onExport }: { group: CourseGroup; onOpenLesson: (id: Id) => void; onExport?: (t: ExportRequest) => void }) {
   const { course, lessons } = group
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(course.name)
@@ -60,6 +67,9 @@ export function CourseCard({ group, onOpenLesson }: { group: CourseGroup; onOpen
               <h2>{course.name}</h2>
               <span className="ui-muted">{lessons.length === 1 ? '1 lezione' : `${lessons.length} lezioni`}{total > 0 && ` · ${fmtSecs(total)} di audio`}</span>
             </div>
+            {onExport && lessons.length > 0 && (
+              <button className="ui-btn ghost icon-only" onClick={() => onExport({ courseId: course.id })} aria-label="Esporta il corso per NotebookLM"><Icon name="export" size={18} /></button>
+            )}
             <button className="ui-btn ghost icon-only" onClick={() => setEditing(true)} aria-label="Rinomina il corso"><Icon name="edit" size={18} /></button>
             <button className="ui-btn ghost icon-only" onClick={() => setConfirming(true)} aria-label="Elimina il corso"><Icon name="trash" size={18} /></button>
           </>
@@ -78,7 +88,7 @@ export function CourseCard({ group, onOpenLesson }: { group: CourseGroup; onOpen
         <p className="ui-muted">Nessuna lezione in questo corso.</p>
       ) : (
         <ul className="lib-lessons">
-          {lessons.map((l) => <LessonRow key={l.id} lesson={l} onOpen={() => onOpenLesson(l.id)} />)}
+          {lessons.map((l) => <LessonRow key={l.id} lesson={l} onOpen={() => onOpenLesson(l.id)} onExport={onExport && (() => onExport({ lessonId: l.id }))} />)}
         </ul>
       )}
     </section>

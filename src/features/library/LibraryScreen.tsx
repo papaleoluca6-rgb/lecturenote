@@ -3,12 +3,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/schema'
 import type { Id } from '../../db/schema'
 import { Icon } from '../../lib/Icon'
-import { CourseCard } from './CourseCard'
+import { CourseCard, type ExportRequest } from './CourseCard'
 import { NewLessonForm } from './NewLessonForm'
 import { createCourse, groupAndFilter } from './data'
 import './library.css'
 
-export function LibraryScreen({ onOpenLesson }: { onOpenLesson: (id: Id) => void }) {
+export function LibraryScreen({ onOpenLesson, onExport }: { onOpenLesson: (id: Id) => void; onExport?: (t: ExportRequest) => void }) {
   const courses = useLiveQuery(() => db.courses.toArray(), [])
   const lessons = useLiveQuery(() => db.lessons.toArray(), [])
   const [query, setQuery] = useState('')
@@ -62,7 +62,7 @@ export function LibraryScreen({ onOpenLesson }: { onOpenLesson: (id: Id) => void
           {groups.length === 0 ? (
             <div className="ui-empty"><Icon name="search" size={32} /><p>Nessun risultato per «{query}».</p></div>
           ) : (
-            <div className="lib-grid">{groups.map((g) => <CourseCard key={g.course.id} group={g} onOpenLesson={onOpenLesson} />)}</div>
+            <div className="lib-grid">{groups.map((g) => <CourseCard key={g.course.id} group={g} onOpenLesson={onOpenLesson} onExport={onExport} />)}</div>
           )}
         </>
       )}

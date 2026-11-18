@@ -36,6 +36,12 @@ const P = {
   captions: 'M7 13h4|M15 13h2|M7 9h2|M13 9h4|M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z',
   folder: 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z',
   wave: 'M2 10v3|M6 6v11|M10 3v18|M14 8v7|M18 5v13|M22 10v3',
+  redo: 'M21 7v6h-6|M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7',
+  expand: 'M15 3h6v6|M9 21H3v-6|M21 3l-7 7|M3 21l7-7',
+  shrink: 'M4 14h6v6|M20 10h-6V4|M14 10l7-7|M3 21l7-7',
+  grid: 'M3 3h7v7H3Z|M14 3h7v7h-7Z|M14 14h7v7h-7Z|M3 14h7v7H3Z',
+  share: 'M18 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z|M6 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z|M18 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z|m8.6 13.5 6.8 4|m15.4 6.5-6.8 4',
+  export: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z|M14 2v6h6|M12 18v-6|m9 15 3 3 3-3',
 } as const
 
 export type IconName = keyof typeof P

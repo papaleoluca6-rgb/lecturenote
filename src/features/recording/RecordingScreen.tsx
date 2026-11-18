@@ -63,7 +63,7 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
 
   return (
     <main className="rec">
-      <header className="rec-top">
+      <header className={`rec-head ${r.state}`} aria-label="Registratore">
         <button className="ui-btn ghost icon-only" onClick={() => void close()} aria-label="Torna alla libreria">
           <Icon name="back" />
         </button>
@@ -71,26 +71,24 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
           <input className="rec-input" defaultValue={lesson.title} aria-label="Titolo della lezione" onBlur={(e) => rename(e.target.value)} />
           {course && <span className="rec-course"><i style={{ background: course.color }} />{course.name}</span>}
         </div>
-      </header>
-
-      <section className={`rec-bar ${r.state}`} aria-label="Registratore">
         <div className="rec-status" aria-live="polite">
-          <span className="rec-state"><span className="rec-dot" aria-hidden /> {STATE_LABEL[r.state]}</span>
+          <span className="rec-dot" aria-hidden />
+          <span className="rec-state">{STATE_LABEL[r.state]}</span>
           <span className="rec-timer mono">{fmtSecs(r.elapsed)}</span>
         </div>
         <div className="rec-controls">
           {r.state === 'idle' && (
-            <button className="ui-btn big record" onClick={() => void r.start()}>
-              <Icon name="mic" size={22} /> {r.elapsed > 0 ? 'Continua' : 'Registra'}
+            <button className="ui-btn record" onClick={() => void r.start()}>
+              <Icon name="mic" /> {r.elapsed > 0 ? 'Continua' : 'Registra'}
             </button>
           )}
-          {r.state === 'recording' && <button className="ui-btn big" onClick={r.pause}><Icon name="pause" size={22} /> Pausa</button>}
-          {r.state === 'paused' && <button className="ui-btn big record" onClick={r.resume}><Icon name="mic" size={22} /> Riprendi</button>}
-          {r.state !== 'idle' && <button className="ui-btn big" onClick={() => void r.stop()}><Icon name="stop" size={22} /> Ferma</button>}
+          {r.state === 'recording' && <button className="ui-btn" onClick={r.pause}><Icon name="pause" /> Pausa</button>}
+          {r.state === 'paused' && <button className="ui-btn record" onClick={r.resume}><Icon name="mic" /> Riprendi</button>}
+          {r.state !== 'idle' && <button className="ui-btn icon-only" onClick={() => void r.stop()} aria-label="Ferma la registrazione" title="Ferma"><Icon name="stop" /></button>}
         </div>
         {r.state !== 'idle' && !r.wakeLock && <p className="rec-hint">Lo schermo può spegnersi: tieni il tablet attivo.</p>}
         {r.error && <p className="rec-hint ui-error" role="alert">{r.error}</p>}
-      </section>
+      </header>
 
       {panels?.({ recording: r.state !== 'idle', running: r.state === 'recording', now: r.elapsedSec, stream: r.stream, onFlush })}
     </main>

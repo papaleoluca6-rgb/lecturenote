@@ -1,6 +1,6 @@
 import { db, lessonTables, newId, type Course, type Id, type Lesson, type SpokenLang } from '../../db/schema'
 
-const COLORS = ['var(--accent)', 'var(--ok)', 'var(--warn)', 'var(--rec)', 'var(--t2)']
+const COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)', 'var(--c7)']
 
 export async function createCourse(name: string): Promise<void> {
   const n = await db.courses.count()
