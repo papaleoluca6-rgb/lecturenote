@@ -14,6 +14,7 @@
   --warn: #ffb830;
   /* Penna: colori dell'inchiostro (su carta bianca) e della pagina */
   --paper: #ffffff;
+  --scrim: rgba(0, 0, 0, 0.92);
   --ink-black: #1a1a24;
   --ink-blue: #1f4fd8;
   --ink-red: #d8253a;
