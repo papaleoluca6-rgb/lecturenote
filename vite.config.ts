@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
         name: 'LectureNote',
         short_name: 'LectureNote',
@@ -20,14 +20,21 @@ export default defineConfig({
         orientation: 'any',
         background_color: '#0b0b12',
         theme_color: '#0b0b12',
-        // TODO(pwa): aggiungere icone PNG 192/512 (Android le richiede per l'installazione)
-        icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+        start_url: '/',
+        scope: '/',
+        id: '/',
+        icons: [
+          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
       workbox: {
         // pdf.js worker e font sono pesanti: alzo il limite di precache
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // + risorse di pdf.js in public/pdfjs (mappe CJK, font, wasm) per importare PDF offline
-        globPatterns: ['**/*.{js,css,html,svg,bcmap,pfb,ttf,wasm,icc}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,bcmap,pfb,ttf,wasm,icc}'],
       },
     }),
   ],
