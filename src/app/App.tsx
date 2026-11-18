@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Id } from '../db/schema'
+import { BackupPanel } from '../features/backup/BackupPanel'
 import { LibraryScreen } from '../features/library/LibraryScreen'
 import { LessonPanels } from './LessonPanels'
 import { RecordingScreen } from '../features/recording/RecordingScreen'
@@ -20,7 +21,7 @@ export function App() {
   const [lessonId, setLessonId] = useState<Id | null>(null)
   const hash = useHash()
   if (hash === '#prova') return <ProbeScreen onClose={() => (location.hash = '')} />
-  if (hash === '#impostazioni') return <SettingsScreen onClose={() => (location.hash = '')} />
+  if (hash === '#impostazioni') return <SettingsScreen onClose={() => (location.hash = '')}><BackupPanel /></SettingsScreen>
   return lessonId ? (
     <RecordingScreen
       key={lessonId}
