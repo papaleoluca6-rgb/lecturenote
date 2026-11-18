@@ -15,7 +15,7 @@ Una riga = una sessione di lavoro. Stato: ⬜ da fare · 🟨 in corso · ✅ fa
 | 8 | Ripasso: riascolto da nota/slide/frase, riassunto AI, flashcard | `study/` | medio | ✅ |
 | 9 | Impostazioni: chiavi API, scelta provider | `settings/` | basso | ✅ |
 | 10 | Backup: export/import di tutto, import dei vecchi JSON di `legacy/` | `backup/` | medio | ✅ |
-| 11 | PWA: icone PNG, installazione su Android, test offline | — | basso | 🟨 |
+| 11 | PWA: icone PNG, installazione su Android, test offline, pubblicazione su GitHub Pages | — | basso | 🟨 |
 
 ## Traduttore in tempo reale (cinese→italiano, inglese→italiano)
 
@@ -100,3 +100,10 @@ Skill gratuite installate (globali, `~/.claude/skills`): `webapp-testing` (Anthr
 - **Verificato sul PC** (960×600 e 600×960, eventi penna simulati): build e lint puliti, tratto con pressione, cursore sospeso, gomma col tasto laterale, Annulla/Ripeti, righe/quadretti, modalità foglio, testo dell'export.
 - **Da provare sul tablet:** codici reali del tasto della S Pen su Chrome Android 9, hover e `getPredictedEvents`, fluidità sul processore del Tab Active2; condivisione verso NotebookLM; se NotebookLM accetta l'audio `.webm` del registratore (altrimenti caricare solo il testo).
 - **Revisione e test (prima del commit):** revisione del codice (`/code-review high`): corretti tratto che spariva scrivendo veloce, frecce che sfogliavano slide nascoste (e creavano agganci falsi), Annulla/Ripeti attivi su una pagina eliminata, modalità foglio non chiusa uscendo dallo schermo intero con Indietro, condivisione dell'`.aac` impossibile su Android. Trovato e corretto anche un bug vecchio: Ripasso ed export mostravano «Slide 0» (`Slide.page` è l'ordine nella lezione, non il numero nella presentazione: ora `lib/slideNumbers.ts`). **Test end-to-end con Playwright e il microfono vero del PC** (script in `.playwright-mcp/e2e.js`, cartella ignorata da git): 20 controlli passati: registrazione/pausa/ripresa, layout 960×600 e 600×960 senza scorrimento, penna, Annulla/Ripeti, tasto laterale S Pen simulato, quadretti, modalità foglio, slide, note, export testo e audio AAC, nessun errore in console.
+
+## Pubblicazione (2026-11-18)
+
+- **Indirizzo dell'app:** https://papaleoluca6-rgb.github.io/lecturenote/ (GitHub Pages, gratuito, HTTPS: microfono senza flag di Chrome). Repository pubblico `papaleoluca6-rgb/lecturenote`; prima di pubblicare: controllo di chiavi e dati personali su file e cronologia, autore dei commit riscritto (`papaleoluca6@gmail.com`).
+- **Aggiornamenti:** push su `main` → il workflow compila (`BASE_PATH=/lecturenote/`) e pubblica. Sul tablet l'app si aggiorna da sola alla prima apertura con la rete.
+- **Installazione sul tablet:** aprire l'indirizzo in Chrome (in Cina con la VPN), **aspettare un minuto online** (la prima volta scarica ~200 file per l'offline), poi menu ⋮ → «Installa app». Da lì funziona senza rete.
+- Verificato: sito in HTTPS, service worker su `/lecturenote/`, 198 file in cache, riapertura offline, microfono disponibile, nessun errore. **Da fare sul tablet:** installazione e prove (righe 3, 4, 11).
