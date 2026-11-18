@@ -5,14 +5,15 @@ export interface Choice<V extends string> {
   disabled?: boolean
 }
 
-export function ChoiceGroup<V extends string>({ name, value, choices, onChange }: {
+export function ChoiceGroup<V extends string>({ name, label, value, choices, onChange }: {
   name: string
+  label: string
   value: V
   choices: Choice<V>[]
   onChange: (v: V) => void
 }) {
   return (
-    <div className="set-choices" role="radiogroup">
+    <div className="set-choices" role="radiogroup" aria-label={label}>
       {choices.map((c) => (
         <label key={c.value} className={`set-choice${c.disabled ? ' off' : ''}`}>
           <input type="radio" name={name} checked={value === c.value} disabled={c.disabled} onChange={() => onChange(c.value)} />

@@ -78,3 +78,20 @@ body {
 .tabs { display: flex; gap: 6px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 4px; }
 .tab { flex: 1; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--t2); font: inherit; font-weight: 600; cursor: pointer; }
 .tab.on { background: var(--s3); color: var(--text); }
+
+/* Elementi condivisi tra schermate (libreria, impostazioni, backup) */
+.ui-page { padding: max(24px, env(safe-area-inset-top)) 24px 24px; display: grid; gap: 16px; align-content: start; max-width: 1200px; margin: 0 auto; }
+.ui-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ui-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex: 1; }
+.ui-input { flex: 1; min-width: 180px; min-height: 44px; padding: 0 14px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s1); color: var(--text); font: inherit; }
+.ui-input:focus { outline: 2px solid var(--accent); }
+.ui-btn { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s2); color: var(--text); font: inherit; cursor: pointer; }
+.ui-btn:disabled { opacity: 0.5; }
+.ui-btn.primary { background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.ui-btn.danger { color: var(--rec); }
+.ui-muted { color: var(--t2); font-size: 14px; }
+.ui-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+a.ui-btn, label.ui-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.ui-sec { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.ui-sec h2 { margin: 0; font-size: 1.1rem; }
+.ui-stack { display: flex; flex-direction: column; gap: 8px; }

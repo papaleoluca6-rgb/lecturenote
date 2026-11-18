@@ -30,12 +30,12 @@ export function BackupPanel() {
   }
 
   return (
-    <section className="set-sec">
+    <section className="ui-sec">
       <h2>Backup</h2>
       <p>I dati restano sul tablet: esporta un file per tenerne una copia (le chiavi API non sono incluse).</p>
-      <div className="set-choices">
-        <button className="lib-btn" disabled={busy} onClick={doExport}>Esporta tutto</button>
-        <label className="lib-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="ui-stack">
+        <button className="ui-btn" disabled={busy} onClick={doExport}>Esporta tutto</button>
+        <label className="ui-btn">
           Importa backup…
           <input type="file" accept=".lnbak" hidden disabled={busy} onChange={(e) => {
             const f = e.target.files?.[0]

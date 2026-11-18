@@ -33,7 +33,7 @@ export function LessonPanels({ lessonId, clock }: { lessonId: Id; clock: LessonC
         <NotebookPanel lessonId={lessonId} now={clock.now} />
       </div>
       <div hidden={tab !== 'notes'}>
-        <NotesPanel lessonId={lessonId} now={clock.now} />
+        <NotesPanel lessonId={lessonId} now={clock.now} onFlush={clock.onFlush} />
       </div>
     </>
   )

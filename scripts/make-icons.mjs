@@ -2,6 +2,10 @@
 // Uso: npm run icons. I PNG generati vanno committati.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import zlib from 'node:zlib'
+import { fileURLToPath } from 'node:url'
+
+// Percorso relativo allo script, non alla cartella da cui si lancia il comando.
+const OUT = fileURLToPath(new URL('../public/icons/', import.meta.url))
 
 const ACCENT = [0x5b, 0x5f, 0xff]
 const WHITE = [255, 255, 255]
@@ -86,12 +90,12 @@ function png(size, maskable) {
   ])
 }
 
-mkdirSync('public/icons', { recursive: true })
+mkdirSync(OUT, { recursive: true })
 for (const [name, size, maskable] of [
   ['icon-192', 192, false],
   ['icon-512', 512, false],
   ['maskable-512', 512, true],
 ]) {
-  writeFileSync(`public/icons/${name}.png`, png(size, maskable))
+  writeFileSync(`${OUT}${name}.png`, png(size, maskable))
   console.log(`public/icons/${name}.png`)
 }

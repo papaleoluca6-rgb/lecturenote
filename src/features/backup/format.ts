@@ -58,6 +58,7 @@ export async function decode(file: Blob): Promise<{ meta: Meta; tables: Tables }
   let data: { version?: number; createdAt: number; dbVersion: number; tables?: Tables }
   try { data = JSON.parse(await file.slice(start, start + jsonLen).text()) } catch { throw bad() }
   if (data.version !== VERSION) throw new Error("Versione del backup non supportata: aggiorna l'app e riprova.")
+  if (!Number.isInteger(data.dbVersion) || data.dbVersion < 1) throw bad()
   if (!isPlain(data.tables) || !Object.values(data.tables).every(Array.isArray)) throw bad()
   const tables = revive(data.tables, file, start + jsonLen) as Tables
   return { meta: { version: VERSION, createdAt: data.createdAt, dbVersion: data.dbVersion }, tables }

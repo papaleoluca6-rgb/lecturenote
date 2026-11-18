@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { db, type Id, type Sec } from '../../db/schema'
 import { fmtSecs } from '../../lib/time'
 import { SegmentList } from './SegmentList'
@@ -23,6 +23,8 @@ async function dropIfEmpty(lessonId: Id): Promise<void> {
 export interface LessonClock {
   recording: boolean
   now: () => Sec
+  /** Registra una funzione da attendere prima di chiudere la lezione (es. salvare una bozza). Restituisce come annullarla. */
+  onFlush: (fn: () => Promise<void>) => () => void
 }
 
 interface Props {
@@ -36,9 +38,16 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
   const lesson = useLiveQuery(() => db.lessons.get(lessonId), [lessonId])
   const course = useLiveQuery(() => (lesson ? db.courses.get(lesson.courseId) : undefined), [lesson?.courseId])
   const r = useRecorder(lessonId)
+  const [flushers] = useState(() => new Set<() => Promise<void>>())
+  const [onFlush] = useState(() => (fn: () => Promise<void>) => {
+    flushers.add(fn)
+    return () => { flushers.delete(fn) }
+  })
 
   const close = async () => {
     await r.stop()
+    // Prima dei controlli sulla lezione vuota: una bozza di nota conta come contenuto.
+    await Promise.allSettled([...flushers].map((f) => f()))
     await dropIfEmpty(lessonId)
     onClose()
   }
@@ -85,7 +94,7 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
         </div>
       </section>
 
-      {panels?.({ recording: r.state !== 'idle', now: r.elapsedSec })}
+      {panels?.({ recording: r.state !== 'idle', now: r.elapsedSec, onFlush })}
 
       {r.state === 'idle' && <SegmentList lessonId={lessonId} />}
     </main>

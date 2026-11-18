@@ -8,37 +8,48 @@ export function ApiKeyField() {
   const draft = edit ?? saved
   const [shown, setShown] = useState(false)
 
-  const save = async () => {
-    await setSetting('apiKey.gemini', draft.trim())
-    setEdit(null)
+  const [error, setError] = useState('')
+
+  const attempt = async (job: () => Promise<void>) => {
+    setError('')
+    try { await job() } catch { setError('Impossibile salvare: riprova.') }
   }
+  // La bozza resta quella appena salvata finché il database non risponde: niente sfarfallio del vecchio valore.
+  const save = () => attempt(async () => {
+    const v = draft.trim()
+    await setSetting('apiKey.gemini', v)
+    setEdit(v)
+  })
   const clear = async () => {
     if (!confirm('Cancellare la chiave Gemini?')) return
-    await db.transaction('rw', db.settings, async () => {
-      await setSetting('apiKey.gemini', '')
-      // Senza chiave le opzioni Gemini non sono valide: se erano scelte, torna ai default gratuiti.
-      if ((await getSetting('stt.provider')) === 'gemini-chunks') await setSetting('stt.provider', DEFAULTS['stt.provider'])
-      if ((await getSetting('translator.provider')) === 'gemini') await setSetting('translator.provider', DEFAULTS['translator.provider'])
+    await attempt(async () => {
+      await db.transaction('rw', db.settings, async () => {
+        await setSetting('apiKey.gemini', '')
+        // Senza chiave le opzioni Gemini non sono valide: se erano scelte, torna ai default gratuiti.
+        if ((await getSetting('stt.provider')) === 'gemini-chunks') await setSetting('stt.provider', DEFAULTS['stt.provider'])
+        if ((await getSetting('translator.provider')) === 'gemini') await setSetting('translator.provider', DEFAULTS['translator.provider'])
+      })
+      setEdit('')
     })
-    setEdit(null)
   }
 
   return (
-    <section className="set-sec">
+    <section className="ui-sec">
       <h2>Chiave AI facoltativa</h2>
-      <p className="lib-muted">
+      <p className="ui-muted">
         Serve solo per le opzioni Gemini: è facoltativa, gratuita nel piano free di Google e resta solo su questo tablet.
         L&apos;app funziona del tutto anche senza.
       </p>
-      <div className="lib-row">
-        <input className="lib-input" type={shown ? 'text' : 'password'} placeholder="Chiave Gemini" autoComplete="off"
+      <div className="ui-row">
+        <input className="ui-input" type={shown ? 'text' : 'password'} placeholder="Chiave Gemini" autoComplete="new-password"
           value={draft} onChange={(e) => setEdit(e.target.value)} />
-        <button className="lib-btn" type="button" onClick={() => setShown(!shown)}>{shown ? 'Nascondi' : 'Mostra'}</button>
+        <button className="ui-btn" type="button" onClick={() => setShown(!shown)}>{shown ? 'Nascondi' : 'Mostra'}</button>
       </div>
-      <div className="lib-actions set-actions">
-        <button className="lib-btn primary" onClick={save} disabled={draft.trim() === saved}>Salva</button>
-        <button className="lib-btn danger" onClick={clear} disabled={!saved}>Cancella</button>
+      <div className="ui-actions set-actions">
+        <button className="ui-btn primary" onClick={save} disabled={draft.trim() === saved}>Salva</button>
+        <button className="ui-btn danger" onClick={clear} disabled={!saved}>Cancella</button>
       </div>
+      {error && <p className="ui-muted" role="alert">{error}</p>}
     </section>
   )
 }

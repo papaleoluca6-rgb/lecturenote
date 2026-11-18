@@ -10,7 +10,9 @@ export function NoteItem({ note, onOpenPhoto }: { note: Note; onOpenPhoto: (url:
   const value = draft ?? note.text
 
   const save = () => {
-    if (draft !== undefined && draft !== note.text) void db.notes.update(note.id, { text: draft })
+    // Una nota di solo testo svuotata torna com'era (per toglierla c'è il cestino).
+    const emptied = !note.photo && !draft?.trim()
+    if (draft !== undefined && draft !== note.text && !emptied) void db.notes.update(note.id, { text: draft })
     setDraft(undefined)
   }
   const remove = () => {

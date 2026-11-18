@@ -31,24 +31,24 @@ export function NewLessonForm({ courses, onCreated, onCancel }: Props) {
     <form className="lib-newlesson" onSubmit={(e) => { e.preventDefault(); void submit() }}>
       <h2>Nuova lezione</h2>
       <label className="lib-field">
-        <span className="lib-muted">Corso</span>
-        <select className="lib-input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+        <span className="ui-muted">Corso</span>
+        <select className="ui-input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
           {sorted.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </label>
       <label className="lib-field">
-        <span className="lib-muted">Titolo</span>
-        <input className="lib-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <span className="ui-muted">Titolo</span>
+        <input className="ui-input" value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
       <label className="lib-field">
-        <span className="lib-muted">Lingua del docente</span>
-        <select className="lib-input" value={lang} onChange={(e) => setLang(e.target.value as SpokenLang)}>
+        <span className="ui-muted">Lingua del docente</span>
+        <select className="ui-input" value={lang} onChange={(e) => setLang(e.target.value as SpokenLang)}>
           {LANGS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
         </select>
       </label>
-      <div className="lib-row">
-        <button className="lib-btn primary" type="submit" disabled={!courseId || !title.trim()}>Vai alla registrazione</button>
-        <button className="lib-btn" type="button" onClick={onCancel}>Annulla</button>
+      <div className="ui-row">
+        <button className="ui-btn primary" type="submit" disabled={!courseId || !title.trim()}>Vai alla registrazione</button>
+        <button className="ui-btn" type="button" onClick={onCancel}>Annulla</button>
       </div>
     </form>
   )

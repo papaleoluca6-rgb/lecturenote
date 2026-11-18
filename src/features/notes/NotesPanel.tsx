@@ -1,42 +1,66 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId, type Id, type Sec } from '../../db/schema'
 import { NoteItem } from './NoteItem'
+import { PhotoViewer } from './PhotoViewer'
 import { shrinkPhoto } from './photo'
 import './notes.css'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
 /** Note di testo e foto agganciate alla timeline. Il ts è quello del primo carattere scritto. */
-export function NotesPanel({ lessonId, now }: { lessonId: Id; now: () => Sec }) {
+export function NotesPanel({ lessonId, now, onFlush }: { lessonId: Id; now: () => Sec; onFlush: (fn: () => Promise<void>) => () => void }) {
   const notes = useLiveQuery(() => db.notes.where('lessonId').equals(lessonId).sortBy('ts'), [lessonId])
   const [text, setText] = useState('')
   const [startTs, setStartTs] = useState<Sec>()
   const [viewer, setViewer] = useState<string>()
+  const closeViewer = useCallback(() => setViewer(undefined), [])
   const [error, setError] = useState<string>()
   const draft = useRef({ text, startTs, now })
+  const saving = useRef(false)
   useEffect(() => { draft.current = { text, startTs, now } })
-  // Uscendo dalla lezione la bozza non aggiunta viene salvata, non persa.
-  useEffect(() => () => {
+
+  const reset = () => {
+    draft.current.text = ''
+    setText('')
+    setStartTs(undefined)
+  }
+  /** Salva la bozza come nota (una sola volta alla volta). Usata da «Aggiungi nota» e prima di chiudere la lezione. */
+  const flush = async () => {
     const { text: t, startTs: s, now: n } = draft.current
-    if (t.trim()) void db.notes.add({ id: newId(), lessonId, ts: round2(s ?? n()), text: t.trim(), createdAt: Date.now() })
-  }, [lessonId])
+    if (saving.current || !t.trim()) return
+    saving.current = true
+    try {
+      await db.notes.add({ id: newId(), lessonId, ts: round2(s ?? n()), text: t.trim(), createdAt: Date.now() })
+      reset()
+    } finally {
+      saving.current = false
+    }
+  }
+  const flushRef = useRef(flush)
+  useEffect(() => { flushRef.current = flush })
+  useEffect(() => {
+    const off = onFlush(() => flushRef.current())
+    return () => {
+      off()
+      // Uscita senza passare da close() (es. cambio schermata): salva solo se la lezione esiste ancora.
+      void db.lessons.get(lessonId).then((l) => l && flushRef.current())
+    }
+  }, [lessonId, onFlush])
 
   const onChange = (v: string) => {
     if (!v) setStartTs(undefined)
     else if (!text) setStartTs(now())
     setText(v)
   }
-  const reset = () => {
-    setText('')
-    setStartTs(undefined)
-  }
 
   const add = async () => {
-    const t = text.trim()
-    if (!t) return
-    await db.notes.add({ id: newId(), lessonId, ts: round2(startTs ?? now()), text: t, createdAt: Date.now() })
-    reset()
+    try {
+      setError(undefined)
+      await flush()
+    } catch {
+      setError('Impossibile salvare la nota')
+    }
   }
 
   const addPhoto = async (file: File | undefined) => {
@@ -84,12 +108,7 @@ export function NotesPanel({ lessonId, now }: { lessonId: Id; now: () => Sec }) 
       <ul className="notes-list">
         {notes?.map((n) => <NoteItem key={n.id} note={n} onOpenPhoto={setViewer} />)}
       </ul>
-      {viewer && (
-        <div className="note-viewer" onClick={() => setViewer(undefined)}>
-          <img src={viewer} alt="Foto della nota" />
-          <button className="note-btn" onClick={() => setViewer(undefined)}>Chiudi</button>
-        </div>
-      )}
+      {viewer && <PhotoViewer url={viewer} onClose={closeViewer} />}
     </div>
   )
 }

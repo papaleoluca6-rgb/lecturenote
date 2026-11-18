@@ -18,9 +18,18 @@ export const DEFAULTS: SettingsMap = {
   'ui.recordingDefaultLang': 'zh+en',
 }
 
+/** Valori ammessi per le impostazioni a scelta: un valore sconosciuto (file vecchio o modificato) vale il default. */
+const ALLOWED: { [K in SettingKey]?: readonly string[] } = {
+  'stt.provider': ['webspeech-device', 'webspeech', 'gemini-chunks'],
+  'translator.provider': ['chrome', 'gemini'],
+  'ui.recordingDefaultLang': ['zh', 'en', 'zh+en'],
+}
+
 export async function getSetting<K extends SettingKey>(key: K): Promise<SettingsMap[K]> {
-  const row = await db.settings.get(key)
-  return row ? (row.value as SettingsMap[K]) : DEFAULTS[key]
+  const v = (await db.settings.get(key))?.value
+  const allowed = ALLOWED[key]
+  const ok = typeof v === 'string' && (allowed ? allowed.includes(v) : true)
+  return ok ? (v as SettingsMap[K]) : DEFAULTS[key]
 }
 
 export async function setSetting<K extends SettingKey>(key: K, value: SettingsMap[K]): Promise<void> {
