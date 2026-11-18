@@ -11,11 +11,16 @@ export async function exportBackup(): Promise<Blob> {
   return encode(tables, db.verno)
 }
 
+const localDate = () => {
+  const d = new Date()
+  return [d.getFullYear(), d.getMonth() + 1, d.getDate()].map((n, i) => String(n).padStart(i ? 2 : 4, '0')).join('-')
+}
+
 export function downloadBackup(blob: Blob) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `lecturenote-backup-${new Date().toISOString().slice(0, 10)}.lnbak`
+  a.download = `lecturenote-backup-${localDate()}.lnbak`
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }

@@ -8,12 +8,14 @@ import './recording.css'
 
 const STATE_LABEL = { idle: 'Pronto', recording: 'Registrazione', paused: 'In pausa' } as const
 
-/** Elimina la lezione se non contiene nulla (né audio né slide importate). */
+/** Elimina la lezione se non contiene nulla (né audio, slide, note o pagine a penna). */
 async function dropIfEmpty(lessonId: Id): Promise<void> {
-  await db.transaction('rw', db.lessons, db.audio, db.slides, async () => {
+  await db.transaction('rw', db.lessons, db.audio, db.slides, db.notes, db.ink, async () => {
     const audio = await db.audio.where('lessonId').equals(lessonId).count()
     const slides = await db.slides.where('lessonId').equals(lessonId).count()
-    if (audio + slides === 0) await db.lessons.delete(lessonId)
+    const notes = await db.notes.where('lessonId').equals(lessonId).count()
+    const ink = await db.ink.where('lessonId').equals(lessonId).count()
+    if (audio + slides + notes + ink === 0) await db.lessons.delete(lessonId)
   })
 }
 

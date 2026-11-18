@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId, type Id, type Sec } from '../../db/schema'
 import { NoteItem } from './NoteItem'
@@ -14,6 +14,13 @@ export function NotesPanel({ lessonId, now }: { lessonId: Id; now: () => Sec }) 
   const [startTs, setStartTs] = useState<Sec>()
   const [viewer, setViewer] = useState<string>()
   const [error, setError] = useState<string>()
+  const draft = useRef({ text, startTs, now })
+  useEffect(() => { draft.current = { text, startTs, now } })
+  // Uscendo dalla lezione la bozza non aggiunta viene salvata, non persa.
+  useEffect(() => () => {
+    const { text: t, startTs: s, now: n } = draft.current
+    if (t.trim()) void db.notes.add({ id: newId(), lessonId, ts: round2(s ?? n()), text: t.trim(), createdAt: Date.now() })
+  }, [lessonId])
 
   const onChange = (v: string) => {
     if (!v) setStartTs(undefined)
@@ -35,11 +42,12 @@ export function NotesPanel({ lessonId, now }: { lessonId: Id; now: () => Sec }) 
   const addPhoto = async (file: File | undefined) => {
     if (!file) return
     const ts = round2(now())
+    const caption = text
     try {
       setError(undefined)
       const photo = await shrinkPhoto(file)
       await db.notes.add({ id: newId(), lessonId, ts, text: text.trim(), photo, createdAt: Date.now() })
-      reset()
+      if (draft.current.text === caption) reset()
     } catch {
       setError('Impossibile salvare la foto')
     }
@@ -62,7 +70,6 @@ export function NotesPanel({ lessonId, now }: { lessonId: Id; now: () => Sec }) 
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               hidden
               onChange={(e) => {
                 void addPhoto(e.target.files?.[0])
