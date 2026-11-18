@@ -1,13 +1,17 @@
 import { db } from '../../../db/schema'
+import { CHAT_PROVIDERS, type ChatProviderId } from '../../../lib/aiProviders'
 
 // Configurazione della prova tecnica. Regola: tutto gratuito e funzionante senza chiavi.
 // Le AI esterne sono solo un'aggiunta facoltativa: chiave in db.settings (apiKey.<provider>), mai nel codice.
 
 /** Servizi AI facoltativi (con piano gratuito). Per aggiungerne uno: qui, in providers.ts e in connTests.ts. */
-export type ProviderId = 'gemini'
+export type ProviderId = 'gemini' | ChatProviderId
 export type AsrProviderId = 'gemini'
 
-export const PROVIDERS: { id: ProviderId; label: string }[] = [{ id: 'gemini', label: 'Gemini (facoltativo)' }]
+export const PROVIDERS: { id: ProviderId; label: string }[] = [
+  { id: 'gemini', label: 'Gemini (facoltativo)' },
+  ...CHAT_PROVIDERS.map((p) => ({ id: p.id, label: `${p.label} (facoltativo)` })),
+]
 
 /** Traduttori: 'chrome' = Translator API di Chrome, offline sul tablet, senza AI esterne né chiavi. */
 export type TranslatorId = 'chrome' | ProviderId
@@ -21,7 +25,7 @@ export interface ProbeConfig {
 }
 
 export const DEFAULT_CONFIG: ProbeConfig = {
-  keys: { gemini: '' },
+  keys: { gemini: '', qwen: '', deepseek: '', kimi: '' },
   geminiModel: 'gemini-2.5-flash-lite',
 }
 

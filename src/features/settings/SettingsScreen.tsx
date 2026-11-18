@@ -1,13 +1,18 @@
 import type { ReactNode } from 'react'
-import { effectiveProvider, setSetting, useSetting } from '../../db/settings'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../db/schema'
+import { CHAT_PROVIDERS } from '../../lib/aiProviders'
+import { effectiveProvider, setSetting, useSetting, type SettingKey } from '../../db/settings'
 import { ApiKeyField } from './ApiKeyField'
 import { ChoiceGroup } from './ChoiceGroup'
 import './settings.css'
 
 export function SettingsScreen({ onClose, children }: { onClose: () => void; children?: ReactNode }) {
-  const noKey = !useSetting('apiKey.gemini')
-  const stt = effectiveProvider('stt.provider', useSetting('stt.provider'), !noKey)
-  const translator = effectiveProvider('translator.provider', useSetting('translator.provider'), !noKey)
+  const keyRows = useLiveQuery(() => db.settings.where('key').startsWith('apiKey.').toArray(), [])
+  const hasKey = (k: SettingKey) => !!keyRows?.some((r) => r.key === k && r.value)
+  const noKey = !hasKey('apiKey.gemini')
+  const stt = effectiveProvider('stt.provider', useSetting('stt.provider'), hasKey)
+  const translator = effectiveProvider('translator.provider', useSetting('translator.provider'), hasKey)
 
   return (
     <main className="ui-page">
@@ -28,9 +33,27 @@ export function SettingsScreen({ onClose, children }: { onClose: () => void; chi
         <ChoiceGroup name="tr" label="Traduzione" value={translator} onChange={(v) => setSetting('translator.provider', v)} choices={[
           { value: 'chrome', label: 'Chrome offline', help: 'Gratis, gira sul tablet senza internet.' },
           { value: 'gemini', label: 'Gemini', help: 'Facoltativo, usa la tua chiave; serve la VPN in Cina.', disabled: noKey },
+          ...CHAT_PROVIDERS.map((p) => ({
+            value: p.id,
+            label: p.label,
+            help: 'Facoltativo, usa la tua chiave; funziona in Cina senza VPN.',
+            disabled: !hasKey(`apiKey.${p.id}`),
+          })),
         ]} />
       </section>
-      <ApiKeyField />
+      <ApiKeyField
+        settingKey="apiKey.gemini"
+        title="Gemini"
+        help="Facoltativa, gratuita nel piano free di Google, resta solo su questo tablet. Serve per trascrivere con Gemini e per la traduzione Gemini. L'app funziona del tutto anche senza."
+      />
+      {CHAT_PROVIDERS.map((p) => (
+        <ApiKeyField
+          key={p.id}
+          settingKey={`apiKey.${p.id}`}
+          title={p.label}
+          help={`Facoltativa, solo per la traduzione: la crei su ${p.keyHelp}. Resta solo su questo tablet; il costo dipende dal tuo piano con ${p.label}.`}
+        />
+      ))}
       {children}
     </main>
   )

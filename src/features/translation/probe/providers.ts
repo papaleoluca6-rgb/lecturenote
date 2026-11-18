@@ -2,6 +2,7 @@ import { postJson } from './http'
 import { toBase64 } from './audio'
 import type { AsrProviderId, ProbeConfig, TranslatorId } from './config'
 import { translateOnDevice } from './onDevice'
+import { CHAT_PROVIDERS, isChatProvider, type ChatProviderId } from '../../../lib/aiProviders'
 
 // Traduzione e riconoscimento: Chrome offline di base, Gemini solo se l'utente ha messo la sua chiave.
 
@@ -29,8 +30,24 @@ async function gemini(cfg: ProbeConfig, parts: GeminiPart[], system?: string): P
   return (r.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('').trim()
 }
 
+interface ChatResp { choices?: { message?: { content?: string } }[] }
+
+/** AI cinesi con API compatibile OpenAI (Qwen, DeepSeek, Kimi). */
+async function chat(id: ChatProviderId, cfg: ProbeConfig, text: string, system: string): Promise<string> {
+  const p = CHAT_PROVIDERS.find((x) => x.id === id)!
+  const key = cfg.keys[id]
+  if (!key) throw new Error(`Chiave ${p.label} non inserita (facoltativa)`)
+  const r = await postJson<ChatResp>(`${p.baseUrl}/chat/completions`, { Authorization: `Bearer ${key}` }, {
+    model: p.model,
+    temperature: 0,
+    messages: [{ role: 'system', content: system }, { role: 'user', content: text }],
+  })
+  return (r.choices?.[0]?.message?.content ?? '').trim()
+}
+
 export async function translate(id: TranslatorId, cfg: ProbeConfig, text: string, from: 'zh' | 'en'): Promise<string> {
-  return id === 'chrome' ? translateOnDevice(text, from) : gemini(cfg, [{ text }], TR_SYSTEM(from))
+  if (id === 'chrome') return translateOnDevice(text, from)
+  return isChatProvider(id) ? chat(id, cfg, text, TR_SYSTEM(from)) : gemini(cfg, [{ text }], TR_SYSTEM(from))
 }
 
 /** Riconoscimento con lingua automatica su un blocco WAV. */

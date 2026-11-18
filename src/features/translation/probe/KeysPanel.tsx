@@ -57,13 +57,13 @@ export function KeysPanel({ cfg, vpn, onCfg, onResult }: Props) {
         })}
       </ul>
       <details className="pr-field">
-        <summary>Facoltativo: aggiungi una chiave AI (Gemini, piano gratuito) per confrontare</summary>
+        <summary>Facoltativo: aggiungi una chiave AI (Gemini, Qwen, DeepSeek, Kimi) per confrontare</summary>
         <p className="pr-muted">Non serve per il funzionamento normale. La chiave resta sul tablet.</p>
         <div className="pr-grid">
           {PROVIDERS.map((p) => (
             <label key={p.id} className="pr-field">
               <span>Chiave {p.label}</span>
-              <input className="pr-input" type="password" autoComplete="off" value={cfg.keys[p.id]} onChange={(e) => setKey(p.id, e.target.value)} />
+              <input className="pr-input" type="password" autoComplete="new-password" value={cfg.keys[p.id]} onChange={(e) => setKey(p.id, e.target.value)} />
             </label>
           ))}
           <label className="pr-field">

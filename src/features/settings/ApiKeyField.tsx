@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import { db } from '../../db/schema'
-import { DEFAULTS, getSetting, setSetting, useSetting } from '../../db/settings'
+import { DEFAULTS, getSetting, keyOf, setSetting, useSetting, type SettingKey } from '../../db/settings'
 
-export function ApiKeyField() {
-  const saved = useSetting('apiKey.gemini')
+interface Props {
+  settingKey: Extract<SettingKey, `apiKey.${string}`>
+  title: string
+  help: string
+}
+
+export function ApiKeyField({ settingKey, title, help }: Props) {
+  const saved = useSetting(settingKey)
   const [edit, setEdit] = useState<string | null>(null)
   const draft = edit ?? saved
   const [shown, setShown] = useState(false)
@@ -17,17 +23,18 @@ export function ApiKeyField() {
   // La bozza resta quella appena salvata finché il database non risponde: niente sfarfallio del vecchio valore.
   const save = () => attempt(async () => {
     const v = draft.trim()
-    await setSetting('apiKey.gemini', v)
+    await setSetting(settingKey, v)
     setEdit(v)
   })
   const clear = async () => {
-    if (!confirm('Cancellare la chiave Gemini?')) return
+    if (!confirm(`Cancellare la chiave ${title}?`)) return
     await attempt(async () => {
       await db.transaction('rw', db.settings, async () => {
-        await setSetting('apiKey.gemini', '')
-        // Senza chiave le opzioni Gemini non sono valide: se erano scelte, torna ai default gratuiti.
-        if ((await getSetting('stt.provider')) === 'gemini-chunks') await setSetting('stt.provider', DEFAULTS['stt.provider'])
-        if ((await getSetting('translator.provider')) === 'gemini') await setSetting('translator.provider', DEFAULTS['translator.provider'])
+        await setSetting(settingKey, '')
+        // Senza chiave le scelte che la usano non sono valide: tornano ai default gratuiti.
+        for (const k of ['stt.provider', 'translator.provider'] as const) {
+          if (keyOf(await getSetting(k)) === settingKey) await setSetting(k, DEFAULTS[k])
+        }
       })
       setEdit('')
     })
@@ -35,13 +42,10 @@ export function ApiKeyField() {
 
   return (
     <section className="ui-sec">
-      <h2>Chiave AI facoltativa</h2>
-      <p className="ui-muted">
-        Serve solo per le opzioni Gemini: è facoltativa, gratuita nel piano free di Google e resta solo su questo tablet.
-        L&apos;app funziona del tutto anche senza.
-      </p>
+      <h2>Chiave {title}</h2>
+      <p className="ui-muted">{help}</p>
       <div className="ui-row">
-        <input className="ui-input" type={shown ? 'text' : 'password'} placeholder="Chiave Gemini" autoComplete="new-password"
+        <input className="ui-input" type={shown ? 'text' : 'password'} placeholder={`Chiave ${title}`} autoComplete="new-password"
           value={draft} onChange={(e) => setEdit(e.target.value)} />
         <button className="ui-btn" type="button" onClick={() => setShown(!shown)}>{shown ? 'Nascondi' : 'Mostra'}</button>
       </div>

@@ -1,3 +1,4 @@
+import { CHAT_PROVIDERS } from '../../../lib/aiProviders'
 import { silenceWav } from './audio'
 import type { ProbeConfig } from './config'
 import { AVAIL_TEXT, detectOnDevice, detectorAvailability, getTranslator, localSpeech, translatorAvailability, withTimeout } from './onDevice'
@@ -16,6 +17,7 @@ export const CONN_TESTS = [
   { id: 'ws-en', label: 'Web Speech en-US (parla!)' },
   { id: 'gemini-tr', label: 'Gemini traduzione (facoltativo)' },
   { id: 'gemini-asr', label: 'Gemini audio (facoltativo)' },
+  ...CHAT_PROVIDERS.map((p) => ({ id: `${p.id}-tr` as `${typeof p.id}-tr`, label: `${p.label} traduzione (facoltativo)` })),
 ] as const
 
 export type ConnTestId = (typeof CONN_TESTS)[number]['id']
@@ -67,7 +69,7 @@ export async function runConnTest(id: ConnTestId, cfg: ProbeConfig, progress: (s
       out = await transcribe('gemini', cfg, silenceWav(1))
       out = `risposta ricevuta (audio di silenzio): «${out}»`
     } else {
-      out = `«${await translate('gemini', cfg, SAMPLE.zh, 'zh')}»`
+      out = `«${await translate(id.replace(/-tr$/, '') as 'gemini', cfg, SAMPLE.zh, 'zh')}»`
     }
     return { ok: true, ms: Math.round(performance.now() - t0), detail: out }
   } catch (e) {
