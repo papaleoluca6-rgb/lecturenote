@@ -34,6 +34,7 @@ export function LibraryScreen({ onOpenLesson }: { onOpenLesson: (id: Id) => void
       <header className="lib-top">
         <h1 className="logo">Lecture<em>Note</em></h1>
         <div className="lib-actions">
+          <a className="lib-btn" href="#impostazioni">⚙ Impostazioni</a>
           <a className="lib-btn" href="#prova">Prova traduttore</a>
           <button className="lib-btn primary" onClick={newLesson}>+ Nuova lezione</button>
         </div>

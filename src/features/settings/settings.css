@@ -1,0 +1,9 @@
+.set-sec { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.set-sec h2 { margin: 0; font-size: 1.1rem; }
+.set-choices { display: flex; flex-direction: column; gap: 8px; }
+.set-choice { display: flex; gap: 12px; align-items: center; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--s1); cursor: pointer; }
+.set-choice.off { opacity: 0.5; cursor: default; }
+.set-choice input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.set-choice span { display: flex; flex-direction: column; gap: 2px; }
+.set-choice small { color: var(--t2); }
+.set-actions { justify-content: flex-start; }

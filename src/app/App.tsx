@@ -3,6 +3,7 @@ import type { Id } from '../db/schema'
 import { LibraryScreen } from '../features/library/LibraryScreen'
 import { LessonPanels } from './LessonPanels'
 import { RecordingScreen } from '../features/recording/RecordingScreen'
+import { SettingsScreen } from '../features/settings/SettingsScreen'
 import { ProbeScreen } from '../features/translation/probe/ProbeScreen'
 
 const useHash = () => {
@@ -19,6 +20,7 @@ export function App() {
   const [lessonId, setLessonId] = useState<Id | null>(null)
   const hash = useHash()
   if (hash === '#prova') return <ProbeScreen onClose={() => (location.hash = '')} />
+  if (hash === '#impostazioni') return <SettingsScreen onClose={() => (location.hash = '')} />
   return lessonId ? (
     <RecordingScreen
       key={lessonId}
