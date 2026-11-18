@@ -1,28 +1,32 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type ReactNode } from 'react'
-import { db, type Id, type Sec } from '../../db/schema'
+import { db, lessonTables, type Id, type Sec } from '../../db/schema'
+import { Icon } from '../../lib/Icon'
 import { fmtSecs } from '../../lib/time'
-import { SegmentList } from './SegmentList'
 import { useRecorder } from './useRecorder'
 import './recording.css'
 
 const STATE_LABEL = { idle: 'Pronto', recording: 'Registrazione', paused: 'In pausa' } as const
 
-/** Elimina la lezione se non contiene nulla (né audio, slide, note o pagine a penna). */
+/** Elimina la lezione se non contiene nulla (né audio, slide, note, penna, trascrizione o flashcard). */
 async function dropIfEmpty(lessonId: Id): Promise<void> {
-  await db.transaction('rw', db.lessons, db.audio, db.slides, db.notes, db.ink, async () => {
-    const audio = await db.audio.where('lessonId').equals(lessonId).count()
-    const slides = await db.slides.where('lessonId').equals(lessonId).count()
-    const notes = await db.notes.where('lessonId').equals(lessonId).count()
-    const ink = await db.ink.where('lessonId').equals(lessonId).count()
-    if (audio + slides + notes + ink === 0) await db.lessons.delete(lessonId)
+  // I soli agganci di slide (pins) e traduzioni non bastano: dipendono da slide e frasi.
+  const tables = lessonTables().filter((t) => t !== db.pins && t !== db.translations)
+  await db.transaction('rw', [db.lessons, ...tables], async () => {
+    for (const t of tables) if (await t.where('lessonId').equals(lessonId).count()) return
+    await db.lessons.delete(lessonId)
   })
 }
 
-/** Orologio della lezione passato ai pannelli ospitati (slide, poi note e penna) per agganciarsi al tempo. */
+/** Orologio della lezione passato ai pannelli ospitati (slide, note, penna, traduzione) per agganciarsi al tempo. */
 export interface LessonClock {
+  /** true mentre si registra, anche in pausa. */
   recording: boolean
+  /** true solo mentre l'audio scorre (non in pausa). */
+  running: boolean
   now: () => Sec
+  /** Microfono della registrazione (null da fermo), per chi lavora su blocchi di audio. */
+  stream: () => MediaStream | null
   /** Registra una funzione da attendere prima di chiudere la lezione (es. salvare una bozza). Restituisce come annullarla. */
   onFlush: (fn: () => Promise<void>) => () => void
 }
@@ -55,48 +59,40 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
     if (title.trim() && title.trim() !== lesson?.title) void db.lessons.update(lessonId, { title: title.trim(), updatedAt: Date.now() })
   }
 
-  if (lesson === undefined) return <main className="rec"><p className="rec-muted">Caricamento…</p></main>
+  if (lesson === undefined) return <main className="rec"><p className="ui-muted">Caricamento…</p></main>
 
   return (
     <main className="rec">
       <header className="rec-top">
-        <button className="rec-btn" onClick={() => void close()}>← Libreria</button>
+        <button className="ui-btn ghost icon-only" onClick={() => void close()} aria-label="Torna alla libreria">
+          <Icon name="back" />
+        </button>
         <div className="rec-title">
-          <input
-            className="rec-input"
-            defaultValue={lesson.title}
-            aria-label="Titolo della lezione"
-            onBlur={(e) => rename(e.target.value)}
-          />
-          <span className="rec-muted">{course?.name}</span>
+          <input className="rec-input" defaultValue={lesson.title} aria-label="Titolo della lezione" onBlur={(e) => rename(e.target.value)} />
+          {course && <span className="rec-course"><i style={{ background: course.color }} />{course.name}</span>}
         </div>
       </header>
 
-      <section className={`rec-panel ${r.state}`} aria-live="polite">
-        <span className="rec-state">
-          <span className="rec-dot" aria-hidden /> {STATE_LABEL[r.state]}
-        </span>
-        <span className="rec-timer mono">{fmtSecs(r.elapsed)}</span>
-        {r.state !== 'idle' && (
-          <span className="rec-muted">{r.wakeLock ? 'Schermo sempre acceso' : 'Lo schermo può spegnersi: tieni il tablet attivo'}</span>
-        )}
-        {r.error && <p className="rec-error" role="alert">{r.error}</p>}
-
+      <section className={`rec-bar ${r.state}`} aria-label="Registratore">
+        <div className="rec-status" aria-live="polite">
+          <span className="rec-state"><span className="rec-dot" aria-hidden /> {STATE_LABEL[r.state]}</span>
+          <span className="rec-timer mono">{fmtSecs(r.elapsed)}</span>
+        </div>
         <div className="rec-controls">
           {r.state === 'idle' && (
-            <button className="rec-btn big record" onClick={() => void r.start()}>
-              {r.elapsed > 0 ? '● Continua registrazione' : '● Registra'}
+            <button className="ui-btn big record" onClick={() => void r.start()}>
+              <Icon name="mic" size={22} /> {r.elapsed > 0 ? 'Continua' : 'Registra'}
             </button>
           )}
-          {r.state === 'recording' && <button className="rec-btn big" onClick={r.pause}>❚❚ Pausa</button>}
-          {r.state === 'paused' && <button className="rec-btn big record" onClick={r.resume}>● Riprendi</button>}
-          {r.state !== 'idle' && <button className="rec-btn big" onClick={() => void r.stop()}>■ Ferma</button>}
+          {r.state === 'recording' && <button className="ui-btn big" onClick={r.pause}><Icon name="pause" size={22} /> Pausa</button>}
+          {r.state === 'paused' && <button className="ui-btn big record" onClick={r.resume}><Icon name="mic" size={22} /> Riprendi</button>}
+          {r.state !== 'idle' && <button className="ui-btn big" onClick={() => void r.stop()}><Icon name="stop" size={22} /> Ferma</button>}
         </div>
+        {r.state !== 'idle' && !r.wakeLock && <p className="rec-hint">Lo schermo può spegnersi: tieni il tablet attivo.</p>}
+        {r.error && <p className="rec-hint ui-error" role="alert">{r.error}</p>}
       </section>
 
-      {panels?.({ recording: r.state !== 'idle', now: r.elapsedSec, onFlush })}
-
-      {r.state === 'idle' && <SegmentList lessonId={lessonId} />}
+      {panels?.({ recording: r.state !== 'idle', running: r.state === 'recording', now: r.elapsedSec, stream: r.stream, onFlush })}
     </main>
   )
 }

@@ -1,23 +1,24 @@
-.rec { padding: max(24px, env(safe-area-inset-top)) 24px 24px; display: grid; gap: 20px; align-content: start; max-width: 1200px; margin: 0 auto; }
-.rec-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.rec-title { flex: 1; min-width: 200px; display: grid; gap: 4px; }
-.rec-input { min-height: 44px; padding: 0 14px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s1); color: var(--text); font: inherit; font-size: 20px; font-weight: 600; }
-.rec-input:focus { outline: 2px solid var(--accent); }
-.rec-muted { color: var(--t2); font-size: 14px; }
-.rec-btn { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s2); color: var(--text); font: inherit; cursor: pointer; }
-.rec-btn.big { min-height: 64px; padding: 0 28px; font-size: 18px; font-weight: 600; }
-.rec-btn.record { background: var(--rec); border-color: var(--rec); }
-.rec-panel { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 32px 16px; display: grid; gap: 12px; justify-items: center; text-align: center; }
-.rec-state { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); font-weight: 600; }
+.rec { padding: max(var(--pad), env(safe-area-inset-top)) var(--pad) var(--pad); display: grid; gap: 14px; align-content: start; max-width: 1280px; margin: 0 auto; }
+.rec-top { display: flex; align-items: center; gap: 8px; }
+.rec-title { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.rec-input { min-height: var(--tap); padding: 0 10px; margin-left: -10px; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; width: 100%; text-overflow: ellipsis; transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
+.rec-input:hover { border-color: var(--border); }
+.rec-input:focus { outline: 2px solid var(--accent); outline-offset: 0; background: var(--s1); }
+.rec-course { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); font-size: 14px; }
+.rec-course i { width: 10px; height: 10px; border-radius: 50%; }
+
+/* Barra del registratore: resta in alto mentre si scorre tra slide e note */
+.rec-bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 10px 12px 10px 20px; background: var(--s1); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow); transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
+.rec-bar.recording { border-color: var(--rec); background: linear-gradient(90deg, var(--rec-soft), var(--s1) 60%); }
+.rec-bar.paused { border-color: var(--warn); }
+.rec-status { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 220px; }
+.rec-state { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; min-width: 140px; }
 .rec-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--t3); }
-.rec-panel.recording .rec-dot { background: var(--rec); animation: rec-blink 1.2s infinite; }
-.rec-panel.recording .rec-state { color: var(--rec); }
-.rec-panel.paused .rec-dot { background: var(--warn); }
-.rec-panel.paused .rec-state { color: var(--warn); }
-.rec-timer { font-size: clamp(56px, 12vw, 96px); font-weight: 700; letter-spacing: -2px; }
-.rec-controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
-.rec-error { color: var(--rec); }
-.rec-segs { list-style: none; display: grid; gap: 8px; }
-.rec-seg { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; display: grid; gap: 8px; }
-.rec-seg audio { width: 100%; }
-@keyframes rec-blink { 50% { opacity: 0.3; } }
+.rec-bar.recording .rec-dot { background: var(--rec); animation: rec-pulse 1.4s var(--ease) infinite; }
+.rec-bar.recording .rec-state { color: var(--rec); }
+.rec-bar.paused .rec-dot { background: var(--warn); }
+.rec-bar.paused .rec-state { color: var(--warn); }
+.rec-timer { font-size: clamp(36px, 6vw, 52px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.rec-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.rec-hint { flex-basis: 100%; color: var(--t2); font-size: 14px; }
+@keyframes rec-pulse { 0% { box-shadow: 0 0 0 0 var(--rec-soft); } 50% { opacity: 0.55; box-shadow: 0 0 0 8px transparent; } }

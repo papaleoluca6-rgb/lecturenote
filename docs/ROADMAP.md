@@ -8,13 +8,13 @@ Una riga = una sessione di lavoro. Stato: ⬜ da fare · 🟨 in corso · ✅ fa
 | 1 | Libreria: corsi, lezioni, ricerca, elimina | `library/` | basso | ✅ |
 | 2 | Registrazione: Wake Lock, pausa, segmenti multipli, recupero dopo crash | `recording/` | alto | ✅ |
 | 3 | **Prova tecnica traduttore** (vedi sotto) | `translation/` | alto | 🟨 |
-| 4 | Traduttore live zh/en→it con sottotitoli | `translation/` + `transcription/` | alto | ⬜ |
+| 4 | Traduttore live zh/en→it con sottotitoli | `translation/live/` | alto | 🟨 |
 | 5 | Slide: import PDF/immagini, viewer, aggancio al tempo | `slides/` | medio | ✅ |
 | 6 | Penna: tratti vettoriali con pressione, palm rejection, su slide e pagine bianche | `ink/` | alto | ✅ |
 | 7 | Note di testo e foto con timestamp | `notes/` | basso | ✅ |
-| 8 | Ripasso: riascolto da nota/slide/frase, riassunto AI, flashcard | `study/` | medio | ⬜ |
+| 8 | Ripasso: riascolto da nota/slide/frase, riassunto AI, flashcard | `study/` | medio | ✅ |
 | 9 | Impostazioni: chiavi API, scelta provider | `settings/` | basso | ✅ |
-| 10 | Backup: export/import di tutto, import dei vecchi JSON di `legacy/` | `backup/` | medio | 🟨 |
+| 10 | Backup: export/import di tutto, import dei vecchi JSON di `legacy/` | `backup/` | medio | ✅ |
 | 11 | PWA: icone PNG, installazione su Android, test offline | — | basso | 🟨 |
 
 ## Traduttore in tempo reale (cinese→italiano, inglese→italiano)
@@ -78,3 +78,15 @@ Fatte con il metodo Superpowers «subagent-driven development»: un sub-agente S
 - Rifiniture fatte: nota svuotata ripristinata, errore se «Aggiungi nota» fallisce, foto a tutto schermo chiudibile col tasto Indietro (`PhotoViewer`), valori delle impostazioni validati, niente sfarfallio dopo «Salva», avanzamento dell'import ogni 20 righe, import senza chiavi API, `dbVersion` validato, classi condivise `ui-*` in `global.css`.
 - **AI cinesi per la traduzione** (facoltative, con la propria chiave): Qwen, DeepSeek, Kimi, API compatibili OpenAI, catalogo in `lib/aiProviders.ts`; chiavi `apiKey.qwen|deepseek|kimi` nelle impostazioni, scelta in «Traduzione», test nella prova tecnica. Funzionano in Cina senza VPN (CORS verificato). Solo testo: il parlato→testo resta Chrome/Web Speech/Gemini. **Per la riga 4:** usare `keyOf` ed `effectiveProvider(key, value, hasKey)` per leggere il provider; `translate()` della prova mostra la chiamata da replicare.
 - Rifiniture ancora aperte: la didascalia di una foto prende il testo scritto prima dell'elaborazione (accettato, è raro); import dei vecchi JSON di `legacy/` e prova sul tablet (vedi sopra).
+
+## Grafica, traduttore live, ripasso, import legacy (sessione 2026-11-18, seconda parte)
+
+Skill gratuite installate (globali, `~/.claude/skills`): `webapp-testing` (Anthropic), `ui-ux-pro-max` (+ design, design-system, ui-styling, brand, banner-design, slides dello stesso pacchetto MIT), `web-design-guidelines` (Vercel). Già presenti: Superpowers, ponytail.
+
+- **Grafica**: token nuovi in `global.css` (superfici, `*-bg` per bottoni con testo bianco a contrasto ≥ 4,5:1, `*-soft`, `--tap` 48 px, `--dur`/`--ease`), `prefers-reduced-motion`, focus visibile, `touch-action: manipulation`. Icone SVG in `lib/Icon.tsx` (disegni Lucide, ISC) al posto di emoji e simboli. Bottoni unificati su `.ui-btn` (`primary`, `record`, `danger`, `ghost`, `big`, `sm`, `icon-only`, `aria-pressed`). Barra del registratore compatta e fissa in alto; schede con icone: Slide, Pagine, Note, Traduzione, Ripasso. Libreria: benvenuto al primo avvio, schede corso con colore, **elimina singola lezione**; «Prova traduttore» spostata nelle impostazioni.
+- **4 Traduttore live 🟨** (`translation/live/`): scheda «Traduzione», interruttore «Sottotitoli live» (spento di default, `live.captions`). Usa i provider delle impostazioni con `effectiveProvider`; Web Speech (sul dispositivo o Google) o Gemini a blocchi di 8 s sul microfono della registrazione (`LessonClock.stream`). Ogni frase → `db.transcript`, traduzione → `db.translations`, con il `ts` della lezione; in pausa l'ascolto si ferma. Il modello di Chrome offline si scarica al tocco dell'interruttore. **Limite:** con `zh+en` Web Speech ascolta solo `zh-CN` (le frasi inglesi escono male); Gemini riconosce entrambe. **Da provare sul tablet** (vedi riga 3): l'audio registrato deve restare udibile con i sottotitoli accesi.
+- **8 Ripasso ✅** (`study/`): lettore unico su tutti i segmenti audio (`player.ts`), ±10 s e barra del tempo; timeline di note, slide mostrate, frasi tradotte e pagine a penna, filtrabile, un tocco riascolta da lì. Riassunto scritto a mano o generato dall'AI facoltativa (`lib/ai.ts`, la prima AI con chiave). Flashcard (tabella `cards`, **db v2**) a mano o generate dall'AI, ripasso a scatole di Leitner (1, 3, 7, 16 giorni). Mentre si registra il riascolto è disattivato.
+- **10 Backup ✅**: «Lezioni della vecchia app (.json)» nelle impostazioni (`backup/legacy.ts`): audio, slide, agganci, note e foto, trascrizione e riassunto; base64 → Blob; reimportare lo stesso file sostituisce la lezione (id `legacy-<id vecchio>`); un'immagine rovinata viene saltata.
+- Rifiniture: `lessonTables()` in `db/schema.ts` è l'unico elenco delle tabelle di una lezione; `useBlobUrl` unico in `lib/`; `http.ts` e chiamate AI in `lib/` (usabili da tutte le feature).
+- **Verificato sul PC** con Playwright e microfono finto (Chrome): registra/pausa/riprendi/ferma, nota col tempo, riascolto e salto dalla timeline, flashcard e ripasso, import legacy e reimport senza doppioni, eliminazione dei corsi, layout orizzontale 1280×800 e verticale 800×1280, nessun errore in console. `npm run build` e `npm run lint` puliti.
+- **Ancora da fare:** prova sul tablet (righe 3, 4, 11).

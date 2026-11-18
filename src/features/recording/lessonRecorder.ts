@@ -30,6 +30,11 @@ export class LessonRecorder {
     this.onChange = onChange
   }
 
+  /** Flusso del microfono in uso (null da fermo): lo condividono i servizi che lavorano su blocchi di audio. */
+  get micStream(): MediaStream | null {
+    return this.stream
+  }
+
   /** Posizione attuale sulla timeline della lezione, in secondi. */
   elapsedSec(): Sec {
     return this.seg ? this.seg.startSec + this.seg.durationSec() : this.baseSec

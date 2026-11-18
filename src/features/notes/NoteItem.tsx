@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { db, type Note } from '../../db/schema'
 import { fmtSecs } from '../../lib/time'
-import { useBlobUrl } from './useBlobUrl'
+import { useBlobUrl } from '../../lib/useBlobUrl'
+import { Icon } from '../../lib/Icon'
 
 /** Una nota dell'elenco: tempo, testo modificabile (salva al blur), miniatura foto, elimina. */
 export function NoteItem({ note, onOpenPhoto }: { note: Note; onOpenPhoto: (url: string) => void }) {
@@ -37,7 +38,7 @@ export function NoteItem({ note, onOpenPhoto }: { note: Note; onOpenPhoto: (url:
           onBlur={save}
         />
       </div>
-      <button className="note-del" aria-label="Elimina nota" onClick={remove}>🗑</button>
+      <button className="note-del" aria-label="Elimina nota" onClick={remove}><Icon name="trash" /></button>
     </li>
   )
 }

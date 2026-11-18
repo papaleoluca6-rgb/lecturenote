@@ -6,6 +6,7 @@ import { LivePanel } from './LivePanel'
 import { ResultsPanel } from './ResultsPanel'
 import { webSpeechAvailable } from './webSpeech'
 import './probe.css'
+import { Icon } from '../../../lib/Icon'
 
 /** Prova tecnica del traduttore (roadmap 3): da usare sul tablet reale, con e senza VPN. */
 export function ProbeScreen({ onClose }: { onClose: () => void }) {
@@ -26,14 +27,14 @@ export function ProbeScreen({ onClose }: { onClose: () => void }) {
   return (
     <main className="pr">
       <header className="pr-top">
-        <button className="pr-btn" onClick={onClose}>← Libreria</button>
+        <button className="ui-btn" onClick={onClose}><Icon name="back" /> Libreria</button>
         <h1>Prova traduttore</h1>
       </header>
       <section className="pr-card">
         <p>Fai ogni prova due volte: <b>senza VPN</b> e <b>con VPN</b>. Indica qui come sei collegato adesso: viene scritto in ogni risultato.</p>
         <div className="pr-row" role="radiogroup" aria-label="VPN">
-          <button className={`pr-btn ${!vpn ? 'on' : ''}`} aria-pressed={!vpn} onClick={() => setVpn(false)}>Senza VPN</button>
-          <button className={`pr-btn ${vpn ? 'on' : ''}`} aria-pressed={vpn} onClick={() => setVpn(true)}>Con VPN</button>
+          <button className={`ui-btn ${!vpn ? 'on' : ''}`} aria-pressed={!vpn} onClick={() => setVpn(false)}>Senza VPN</button>
+          <button className={`ui-btn ${vpn ? 'on' : ''}`} aria-pressed={vpn} onClick={() => setVpn(true)}>Con VPN</button>
         </div>
         {!webSpeechAvailable() && <p className="pr-res ko">Questo browser non ha Web Speech API: usa Chrome.</p>}
       </section>

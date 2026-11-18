@@ -6,6 +6,7 @@ import { effectiveProvider, setSetting, useSetting, type SettingKey } from '../.
 import { ApiKeyField } from './ApiKeyField'
 import { ChoiceGroup } from './ChoiceGroup'
 import './settings.css'
+import { Icon } from '../../lib/Icon'
 
 export function SettingsScreen({ onClose, children }: { onClose: () => void; children?: ReactNode }) {
   const keyRows = useLiveQuery(() => db.settings.where('key').startsWith('apiKey.').toArray(), [])
@@ -18,7 +19,7 @@ export function SettingsScreen({ onClose, children }: { onClose: () => void; chi
     <main className="ui-page">
       <header className="ui-top">
         <h1>Impostazioni</h1>
-        <button className="ui-btn" onClick={onClose}>← Libreria</button>
+        <button className="ui-btn" onClick={onClose}><Icon name="back" /> Libreria</button>
       </header>
       <section className="ui-sec">
         <h2>Riconoscimento del parlato</h2>
@@ -54,7 +55,21 @@ export function SettingsScreen({ onClose, children }: { onClose: () => void; chi
           help={`Facoltativa, solo per la traduzione: la crei su ${p.keyHelp}. Resta solo su questo tablet; il costo dipende dal tuo piano con ${p.label}.`}
         />
       ))}
+      <section className="ui-sec">
+        <h2>Lingua predefinita del docente</h2>
+        <ChoiceGroup name="lang" label="Lingua predefinita del docente" value={useSetting('ui.recordingDefaultLang')} onChange={(v) => setSetting('ui.recordingDefaultLang', v)} choices={[
+          { value: 'zh+en', label: 'Cinese e inglese', help: 'Il docente alterna le due lingue: la lingua si riconosce frase per frase.' },
+          { value: 'zh', label: 'Cinese', help: 'Traduzione cinese → italiano.' },
+          { value: 'en', label: 'Inglese', help: 'Traduzione inglese → italiano.' },
+          { value: 'it', label: 'Italiano', help: 'Solo trascrizione, senza traduzione.' },
+        ]} />
+      </section>
       {children}
+      <section className="ui-sec">
+        <h2>Prova tecnica del traduttore</h2>
+        <p className="ui-muted">Misura sul tablet quali servizi rispondono, con e senza VPN, e se la registrazione resta udibile mentre il riconoscimento ascolta.</p>
+        <div><a className="ui-btn" href="#prova"><Icon name="flask" /> Apri la prova tecnica</a></div>
+      </section>
     </main>
   )
 }

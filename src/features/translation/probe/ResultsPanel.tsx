@@ -25,8 +25,8 @@ export function ResultsPanel({ log, onClear }: { log: ProbeLog; onClear: () => v
     <section className="pr-card">
       <h2>3 · Risultati</h2>
       <div className="pr-row">
-        <button className="pr-btn primary" onClick={() => void copy()}>Copia risultati</button>
-        <button className="pr-btn" onClick={clear}>Svuota</button>
+        <button className="ui-btn primary" onClick={() => void copy()}>Copia risultati</button>
+        <button className="ui-btn" onClick={clear}>Svuota</button>
         {copied && <span className="pr-muted" role="status">{copied}</span>}
       </div>
       {tables.map((t) => (

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { TRANSLATORS, type AsrProviderId, type ProbeConfig } from './config'
 import type { Phrase, SessionSummary } from './log'
 import { ProbeSession, type LiveOptions, type LiveStatus } from './session'
+import { Icon } from '../../../lib/Icon'
 
 interface Props {
   cfg: ProbeConfig
@@ -91,9 +92,9 @@ export function LivePanel({ cfg, vpn, onPhrase, onSession }: Props) {
         </div>
       </fieldset>
       {running ? (
-        <button className="pr-btn stop" onClick={() => void stop()}>■ Ferma e salva risultato</button>
+        <button className="ui-btn record" onClick={() => void stop()}><Icon name="stop" /> Ferma e salva risultato</button>
       ) : (
-        <button className="pr-btn primary" onClick={() => void start()}>● Avvia prova</button>
+        <button className="ui-btn primary" onClick={() => void start()}><Icon name="mic" /> Avvia prova</button>
       )}
       {error && <p className="pr-res ko">{error}</p>}
       {status && <LiveStatusView s={status} />}

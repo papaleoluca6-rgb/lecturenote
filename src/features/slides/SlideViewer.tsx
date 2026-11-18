@@ -1,8 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { Slide } from '../../db/schema'
-import { useBlobUrl } from './useBlobUrl'
+import { useBlobUrl } from '../../lib/useBlobUrl'
 import { useFitSize } from './useFitSize'
 import { useZoom } from './useZoom'
+import { Icon } from '../../lib/Icon'
 
 interface Props {
   slide: Slide
@@ -47,10 +48,10 @@ export function SlideViewer({ slide, index, total, onGo, overlay }: Props) {
         )}
       </div>
       <div className="sl-nav">
-        <button className="sl-btn" onClick={() => go(-1)} disabled={index === 0} aria-label="Slide precedente">‹</button>
+        <button className="ui-btn icon-only" onClick={() => go(-1)} disabled={index === 0} aria-label="Slide precedente"><Icon name="prev" /></button>
         <span className="sl-count mono">{index + 1} / {total}</span>
-        {zoom.zoomed && <button className="sl-btn" onClick={reset}>Adatta</button>}
-        <button className="sl-btn" onClick={() => go(1)} disabled={index === total - 1} aria-label="Slide successiva">›</button>
+        {zoom.zoomed && <button className="ui-btn" onClick={reset}>Adatta</button>}
+        <button className="ui-btn icon-only" onClick={() => go(1)} disabled={index === total - 1} aria-label="Slide successiva"><Icon name="next" /></button>
       </div>
     </div>
   )

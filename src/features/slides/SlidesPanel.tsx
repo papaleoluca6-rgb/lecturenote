@@ -6,6 +6,7 @@ import { SlideViewer } from './SlideViewer'
 import { Thumbs } from './Thumbs'
 import { useSlidePins } from './usePins'
 import './slides.css'
+import { Icon } from '../../lib/Icon'
 
 interface Props {
   lessonId: Id
@@ -55,13 +56,13 @@ export function SlidesPanel({ lessonId, recording, now, overlay }: Props) {
   return (
     <section className="sl" aria-label="Slide">
       <header className="sl-bar">
-        <h2 className="sl-title">Slide{slide && <span className="sl-deck"> · {slide.deckName}</span>}</h2>
-        {recording && slide && <span className="sl-live">● Cambi di slide agganciati al tempo</span>}
-        <label className={`sl-btn primary${busy ? ' disabled' : ''}`}>
-          + PDF o immagini
+        <h2 className="sl-title">{slide ? slide.deckName : "Slide"}</h2>
+        {recording && slide && <span className="ui-badge rec">Cambi di slide agganciati al tempo</span>}
+        <label className={`ui-btn primary${busy ? ' disabled' : ''}`}>
+          <Icon name="upload" /> PDF o immagini
           <input type="file" accept="application/pdf,.pdf,image/*" multiple hidden disabled={!!busy} onChange={(e) => { void onFiles(e.target.files); e.target.value = '' }} />
         </label>
-        {slide && !busy && <button className="sl-btn" onClick={() => void removeDeck()}>Elimina presentazione</button>}
+        {slide && !busy && <button className="ui-btn danger" onClick={() => void removeDeck()}><Icon name="trash" /> Elimina presentazione</button>}
       </header>
       {busy && <p className="sl-muted" role="status">{busy}</p>}
       {error && <p className="sl-error" role="alert">{error}</p>}
@@ -72,7 +73,7 @@ export function SlidesPanel({ lessonId, recording, now, overlay }: Props) {
           <Thumbs slides={list} current={index} shown={shown} onPick={(i) => setCurrentId(list[i].id)} />
         </>
       ) : (
-        slides && !busy && <p className="sl-muted sl-empty">Importa le slide del docente (PDF o foto): durante la registrazione ogni cambio di slide resta legato al punto dell'audio.</p>
+        slides && !busy && <div className="ui-empty"><Icon name="slides" size={32} /><p>Importa le slide del docente (PDF o foto): durante la registrazione ogni cambio di slide resta legato al punto dell'audio.</p></div>
       )}
     </section>
   )

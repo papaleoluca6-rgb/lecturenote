@@ -4,6 +4,7 @@ import type { Id, InkPage, Sec } from '../../db/schema'
 import { BLANK_H, BLANK_W, addBlankPage, blankPages, deletePage } from './data'
 import { InkLayer } from './InkLayer'
 import './ink.css'
+import { Icon } from '../../lib/Icon'
 
 /** Dimensione della pagina adattata al riquadro (contain). */
 function useFit(ref: React.RefObject<HTMLDivElement | null>) {
@@ -55,9 +56,10 @@ export function NotebookPanel({ lessonId, now }: { lessonId: Id; now: () => Sec 
 
   if (pages && !page)
     return (
-      <div className="ink-empty">
+      <div className="ui-empty">
+        <Icon name="pen" size={32} />
         <p>Pagine bianche per scrivere con la penna, legate al momento della lezione.</p>
-        <button className="ink-btn on" onClick={() => void add()}>+ Nuova pagina</button>
+        <button className="ink-btn on" onClick={() => void add()}><Icon name="plus" /> Nuova pagina</button>
       </div>
     )
 
@@ -65,11 +67,11 @@ export function NotebookPanel({ lessonId, now }: { lessonId: Id; now: () => Sec 
     <section className="ink-nb" aria-label="Pagine bianche">
       {page && <Paper lessonId={lessonId} page={page} now={now} />}
       <div className="ink-nav">
-        <button className="ink-btn" disabled={index <= 0} onClick={() => setCurrentId(list[index - 1].id)} aria-label="Pagina precedente">‹</button>
+        <button className="ink-btn" disabled={index <= 0} onClick={() => setCurrentId(list[index - 1].id)} aria-label="Pagina precedente"><Icon name="prev" /></button>
         <span className="ink-count mono">{list.length ? `${index + 1} / ${list.length}` : ''}</span>
-        <button className="ink-btn" disabled={index >= list.length - 1} onClick={() => setCurrentId(list[index + 1].id)} aria-label="Pagina successiva">›</button>
-        <button className="ink-btn" onClick={() => void add()}>+ Pagina</button>
-        <button className="ink-btn" disabled={!page} onClick={() => void remove()}>Elimina pagina</button>
+        <button className="ink-btn" disabled={index >= list.length - 1} onClick={() => setCurrentId(list[index + 1].id)} aria-label="Pagina successiva"><Icon name="next" /></button>
+        <button className="ink-btn" onClick={() => void add()}><Icon name="plus" /> Pagina</button>
+        <button className="ink-btn" disabled={!page} onClick={() => void remove()}><Icon name="trash" /> Elimina pagina</button>
       </div>
     </section>
   )

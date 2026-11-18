@@ -5,6 +5,7 @@ import { NoteItem } from './NoteItem'
 import { PhotoViewer } from './PhotoViewer'
 import { shrinkPhoto } from './photo'
 import './notes.css'
+import { Icon } from '../../lib/Icon'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -88,9 +89,9 @@ export function NotesPanel({ lessonId, now, onFlush }: { lessonId: Id; now: () =
           onChange={(e) => onChange(e.target.value)}
         />
         <div className="notes-actions">
-          <button className="note-btn primary" disabled={!text.trim()} onClick={() => void add()}>Aggiungi nota</button>
-          <label className="note-btn">
-            📷 Foto
+          <button className="ui-btn primary" disabled={!text.trim()} onClick={() => void add()}><Icon name="plus" /> Aggiungi nota</button>
+          <label className="ui-btn">
+            <Icon name="camera" /> Foto
             <input
               type="file"
               accept="image/*"
@@ -104,7 +105,7 @@ export function NotesPanel({ lessonId, now, onFlush }: { lessonId: Id; now: () =
         </div>
         {error && <p className="notes-error" role="alert">{error}</p>}
       </div>
-      {notes && notes.length === 0 && <p className="notes-empty">Nessuna nota per questa lezione.</p>}
+      {notes && notes.length === 0 && <div className="ui-empty"><Icon name="note" size={32} /><p>Nessuna nota per questa lezione. Il tempo di ogni nota è quello in cui inizi a scriverla.</p></div>}
       <ul className="notes-list">
         {notes?.map((n) => <NoteItem key={n.id} note={n} onOpenPhoto={setViewer} />)}
       </ul>

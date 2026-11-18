@@ -1,4 +1,4 @@
-import { db, newId, type Course, type Id, type Lesson, type SpokenLang } from '../../db/schema'
+import { db, lessonTables, newId, type Course, type Id, type Lesson, type SpokenLang } from '../../db/schema'
 
 const COLORS = ['var(--accent)', 'var(--ok)', 'var(--warn)', 'var(--rec)', 'var(--t2)']
 
@@ -20,12 +20,21 @@ export async function renameCourse(id: string, name: string): Promise<void> {
 
 /** Elimina il corso, le sue lezioni e tutti i dati collegati alle lezioni. */
 export async function deleteCourse(id: string): Promise<void> {
-  const children = [db.audio, db.slides, db.pins, db.notes, db.ink, db.transcript, db.translations]
+  const children = lessonTables()
   await db.transaction('rw', [db.courses, db.lessons, ...children], async () => {
     const lessonIds = await db.lessons.where('courseId').equals(id).primaryKeys()
     for (const t of children) await t.where('lessonId').anyOf(lessonIds).delete()
     await db.lessons.bulkDelete(lessonIds)
     await db.courses.delete(id)
+  })
+}
+
+/** Elimina una lezione con audio, slide, note, penna, trascrizione e flashcard. */
+export async function deleteLesson(id: Id): Promise<void> {
+  const children = lessonTables()
+  await db.transaction('rw', [db.lessons, ...children], async () => {
+    for (const t of children) await t.where('lessonId').equals(id).delete()
+    await db.lessons.delete(id)
   })
 }
 

@@ -1,0 +1,11 @@
+.cap { display: grid; gap: 12px; }
+.cap-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cap-setup { flex: 1; min-width: 200px; }
+.cap-list { list-style: none; display: grid; gap: 4px; align-content: start; max-height: clamp(280px, 60vh, 900px); overflow-y: auto; padding: 8px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); overscroll-behavior: contain; }
+.cap-line { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 10px 8px; border-radius: var(--r-sm); }
+.cap-line:last-child { background: var(--s2); }
+.cap-ts { color: var(--t3); font-size: 13px; padding-top: 4px; }
+.cap-it { font-size: 20px; line-height: 1.4; font-weight: 500; }
+.cap-orig { color: var(--t2); font-size: 15px; margin-top: 2px; }
+.cap-line.interim .cap-orig { font-style: italic; color: var(--t3); }
+.cap-line { content-visibility: auto; contain-intrinsic-size: auto 72px; }

@@ -4,12 +4,7 @@
 .sl-deck { color: var(--t2); font-weight: 500; }
 .sl-live { color: var(--rec); font-size: 14px; font-weight: 600; }
 .sl-muted { color: var(--t2); font-size: 14px; }
-.sl-empty { background: var(--s1); border: 1px dashed var(--border); border-radius: var(--r); padding: 24px 16px; text-align: center; }
 .sl-error { color: var(--rec); }
-.sl-btn { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--s2); color: var(--text); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.sl-btn:disabled { opacity: 0.35; cursor: default; }
-.sl-btn.primary { background: var(--accent); border-color: var(--accent); font-weight: 600; }
-.sl-btn.disabled { opacity: 0.5; pointer-events: none; }
 
 .sl-viewer { display: grid; gap: 8px; }
 .sl-stage { height: clamp(240px, 62vh, 900px); background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
@@ -17,7 +12,7 @@
 .sl-img { display: block; width: 100%; height: 100%; }
 .sl-stage.zoomed { cursor: grab; }
 .sl-nav { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.sl-nav .sl-btn { font-size: 24px; min-width: 64px; }
+.sl-nav .ui-btn { font-size: 24px; min-width: 64px; }
 .sl-count { color: var(--t2); min-width: 80px; text-align: center; }
 
 .sl-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }

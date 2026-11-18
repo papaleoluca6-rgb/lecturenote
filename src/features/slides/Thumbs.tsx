@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Id, Sec, Slide } from '../../db/schema'
 import { fmtSecs } from '../../lib/time'
-import { useBlobUrl } from './useBlobUrl'
+import { useBlobUrl } from '../../lib/useBlobUrl'
 
 function Thumb({ slide, n, active, shownAt, onPick }: { slide: Slide; n: number; active: boolean; shownAt?: Sec; onPick: () => void }) {
   const url = useBlobUrl(slide.id, slide.thumb ?? slide.image)

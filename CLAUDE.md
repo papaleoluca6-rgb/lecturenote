@@ -19,13 +19,12 @@ Niente backend e niente Supabase: i dati restano sul tablet, backup = export/imp
 src/
   app/            shell, navigazione tra schermate
   db/schema.ts    UNICO modello dati (tabelle Dexie + tipi). Cambi schema = nuova db.version(n)
-  lib/            utility pure senza React (time.ts, …)
+  lib/            utility condivise tra feature (time.ts, ai.ts, http.ts, Icon.tsx, useBlobUrl.ts, …)
   styles/         global.css con i token di design (variabili CSS)
   features/
     library/        corsi e lezioni: lista, ricerca, eliminazione
     recording/      MediaRecorder, Wake Lock, pausa, segmenti audio multipli
-    transcription/  provider parlato→testo (Web Speech, AI su blocchi di audio)
-    translation/    traduttore live zh/en→it (types.ts = interfacce provider)
+    translation/    traduttore live zh/en→it: live/ (sottotitoli nella lezione), probe/ (prova tecnica)
     slides/         import PDF/immagini, viewer, aggancio slide↔tempo
     ink/            scrittura a mano vettoriale con pressione, su pagina bianca o su slide
     notes/          note di testo con timestamp, foto
@@ -44,7 +43,7 @@ docs/ROADMAP.md   funzionalità in ordine e stato
 - Audio e immagini come `Blob` in IndexedDB, mai base64.
 - Chiavi API solo nelle impostazioni dell'app, mai scritte nel codice né nei commit.
 - UI in italiano, pensata per il touch e la penna: tap target ≥ 44px, layout per tablet sia orizzontale sia verticale.
-- Colori e misure solo tramite le variabili di `styles/global.css`.
+- Colori e misure solo tramite le variabili di `styles/global.css`; bottoni con `.ui-btn`, icone con `lib/Icon.tsx` (mai emoji).
 
 ## Come lavoriamo (risparmio token)
 - **Una sessione per funzionalità** della roadmap; alla fine aggiornare lo stato in `docs/ROADMAP.md`.

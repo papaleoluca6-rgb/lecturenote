@@ -6,21 +6,33 @@ import { NotebookPanel } from '../features/ink/NotebookPanel'
 import type { LessonClock } from '../features/recording/RecordingScreen'
 import { NotesPanel } from '../features/notes/NotesPanel'
 import { SlidesPanel } from '../features/slides/SlidesPanel'
+import { ReviewPanel } from '../features/study/ReviewPanel'
+import { CaptionsPanel } from '../features/translation/live/CaptionsPanel'
+import { Icon, type IconName } from '../lib/Icon'
 
-type Tab = 'slides' | 'notebook' | 'notes'
+type Tab = 'slides' | 'notebook' | 'notes' | 'captions' | 'review'
+const TABS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'slides', label: 'Slide', icon: 'slides' },
+  { id: 'notebook', label: 'Pagine', icon: 'pen' },
+  { id: 'notes', label: 'Note', icon: 'note' },
+  { id: 'captions', label: 'Traduzione', icon: 'translate' },
+  { id: 'review', label: 'Ripasso', icon: 'book' },
+]
 
-/** Pannelli della lezione sotto il registratore: slide (con la penna sopra) e pagine bianche. */
+/** Pannelli della lezione sotto il registratore. Le feature si compongono qui (non si importano tra loro). */
 export function LessonPanels({ lessonId, clock }: { lessonId: Id; clock: LessonClock }) {
   const [tab, setTab] = useState<Tab>('slides')
   return (
     <>
-      <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'slides'} className={`tab${tab === 'slides' ? ' on' : ''}`} onClick={() => setTab('slides')}>Slide</button>
-        <button role="tab" aria-selected={tab === 'notebook'} className={`tab${tab === 'notebook' ? ' on' : ''}`} onClick={() => setTab('notebook')}>Pagine bianche</button>
-        <button role="tab" aria-selected={tab === 'notes'} className={`tab${tab === 'notes' ? ' on' : ''}`} onClick={() => setTab('notes')}>Note</button>
+      <div className="tabs" role="tablist" aria-label="Sezioni della lezione">
+        {TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={`tab${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>
+            <Icon name={t.icon} size={18} /> {t.label}
+          </button>
+        ))}
       </div>
-      {tab !== 'notes' && <InkToolbar />}
-      {/* Tutti restano montati: cambiando scheda la slide corrente non si perde (e non si crea un aggancio falso). */}
+      {(tab === 'slides' || tab === 'notebook') && <InkToolbar />}
+      {/* Slide, pagine, note e traduzione restano montate: cambiando scheda non si perde nulla (né la slide corrente né l'ascolto). */}
       <div hidden={tab !== 'slides'}>
         <SlidesPanel
           lessonId={lessonId}
@@ -35,6 +47,10 @@ export function LessonPanels({ lessonId, clock }: { lessonId: Id; clock: LessonC
       <div hidden={tab !== 'notes'}>
         <NotesPanel lessonId={lessonId} now={clock.now} onFlush={clock.onFlush} />
       </div>
+      <div hidden={tab !== 'captions'}>
+        <CaptionsPanel lessonId={lessonId} recording={clock.recording} running={clock.running} now={clock.now} stream={clock.stream} />
+      </div>
+      {tab === 'review' && <ReviewPanel lessonId={lessonId} recording={clock.recording} />}
     </>
   )
 }

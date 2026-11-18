@@ -44,7 +44,7 @@ export function KeysPanel({ cfg, vpn, onCfg, onResult }: Props) {
           const r = last[t.id]
           return (
             <li key={t.id} className="pr-test">
-              <button className="pr-btn" disabled={busy !== null} onClick={() => void test(t.id, t.label)}>
+              <button className="ui-btn" disabled={busy !== null} onClick={() => void test(t.id, t.label)}>
                 {busy === t.id ? progress || 'Prova in corso…' : `Testa ${t.label}`}
               </button>
               {r && (
@@ -71,7 +71,7 @@ export function KeysPanel({ cfg, vpn, onCfg, onResult }: Props) {
             <input className="pr-input" value={cfg.geminiModel} onChange={(e) => edit({ ...cfg, geminiModel: e.target.value })} />
           </label>
         </div>
-        <button className="pr-btn primary" onClick={() => void save()} disabled={saved}>{saved ? 'Salvato' : 'Salva'}</button>
+        <button className="ui-btn primary" onClick={() => void save()} disabled={saved}>{saved ? 'Salvato' : 'Salva'}</button>
       </details>
     </section>
   )

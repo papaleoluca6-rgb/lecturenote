@@ -1,0 +1,46 @@
+.st { display: grid; gap: 14px; }
+.st-player { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; background: var(--s1); border: 1px solid var(--border); border-radius: 18px; }
+.st-play { width: 56px; height: 56px; border-radius: 50%; }
+.st-fwd .icon { transform: scaleX(-1); }
+.st-time { font-size: 15px; min-width: 56px; text-align: center; }
+.st-seek { flex: 1; min-width: 160px; height: var(--tap); accent-color: var(--accent); cursor: pointer; }
+.st-hint, .st-noaudio { flex-basis: 100%; }
+.st-cols { display: grid; gap: 14px; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); align-items: start; }
+@media (max-width: 900px) { .st-cols { grid-template-columns: 1fr; } }
+.st-side { display: grid; gap: 14px; }
+
+.st-tl { display: grid; gap: 10px; }
+.st-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.st-events { list-style: none; display: grid; gap: 4px; max-height: 70vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+.st-ev { width: 100%; display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 10px 12px; min-height: 56px; border-radius: 12px; border: 1px solid transparent; background: transparent; cursor: pointer; transition: background var(--dur) var(--ease); }
+.st-ev:hover { background: var(--s1); }
+.st-ev:active { background: var(--s2); }
+.st-ev:disabled { cursor: default; }
+.st-ev.now { background: var(--accent-soft); border-color: var(--accent); }
+.st-ev-ts { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 13px; min-width: 64px; padding-top: 2px; }
+.st-ev:disabled .st-ev-ts { color: var(--t3); }
+.st-ev-body { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.st-ev-title { display: inline-flex; align-items: center; gap: 6px; color: var(--t2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.st-ev.note .st-ev-title { color: var(--warn); }
+.st-ev.slide .st-ev-title { color: var(--accent); }
+.st-ev.ink .st-ev-title { color: var(--ok); }
+.st-ev-text { overflow-wrap: anywhere; }
+.st-ev-orig { color: var(--t2); font-size: 14px; }
+.st-thumb { width: 96px; height: 60px; object-fit: contain; border-radius: 6px; background: var(--paper); flex: none; }
+
+.st-box { display: grid; gap: 12px; }
+.st-box-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.st-box-head h3 { flex: 1; display: inline-flex; align-items: center; gap: 8px; font-size: 17px; }
+.st-summary { min-height: 180px; line-height: 1.55; }
+.st-addcard { display: grid; gap: 8px; }
+.st-addcard .ui-input { min-width: 0; }
+.st-cards { list-style: none; display: grid; gap: 6px; max-height: 40vh; overflow-y: auto; }
+.st-card { display: flex; align-items: center; gap: 8px; padding: 8px 4px 8px 12px; background: var(--s2); border-radius: var(--r-sm); }
+.st-card > div { flex: 1; min-width: 0; display: grid; gap: 2px; overflow-wrap: anywhere; }
+.st-review { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 20px 12px; background: var(--s2); border-radius: var(--r); }
+.st-review.done .icon { color: var(--ok); }
+.st-q { font-size: 22px; font-weight: 600; text-wrap: balance; }
+.st-a { font-size: 18px; color: var(--ok); text-wrap: balance; }
+.st-grade { justify-content: center; }
+/* Lezioni lunghe = migliaia di righe: il browser disegna solo quelle visibili */
+.st-events > li { content-visibility: auto; contain-intrinsic-size: auto 64px; }

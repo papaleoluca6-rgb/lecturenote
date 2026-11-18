@@ -2,6 +2,7 @@ import { HIGHLIGHTER_SIZE, SIZES } from './freehand'
 import { undoLast } from './data'
 import { setTool, useInkTool, type InkTool } from './toolStore'
 import './ink.css'
+import { Icon } from '../../lib/Icon'
 
 const PEN_COLORS = ['--ink-black', '--ink-blue', '--ink-red', '--ink-green']
 const HL_COLORS = ['--ink-hl-yellow', '--ink-hl-green']
@@ -23,9 +24,9 @@ export function InkToolbar() {
 
   return (
     <div className="ink-bar" role="toolbar" aria-label="Strumenti penna">
-      <button className={`ink-btn${t.tool === 'pen' ? ' on' : ''}`} onClick={() => pick('pen', PEN_COLORS.includes(t.color) ? undefined : PEN_COLORS[0])}>✎ Penna</button>
-      <button className={`ink-btn${t.tool === 'highlighter' ? ' on' : ''}`} onClick={() => pick('highlighter', HL_COLORS.includes(t.color) ? undefined : HL_COLORS[0])}>▮ Evidenziatore</button>
-      <button className={`ink-btn${t.tool === 'eraser' ? ' on' : ''}`} onClick={() => pick('eraser')}>⌫ Gomma</button>
+      <button className={`ink-btn${t.tool === 'pen' ? ' on' : ''}`} onClick={() => pick('pen', PEN_COLORS.includes(t.color) ? undefined : PEN_COLORS[0])}><Icon name="pen" /> Penna</button>
+      <button className={`ink-btn${t.tool === 'highlighter' ? ' on' : ''}`} onClick={() => pick('highlighter', HL_COLORS.includes(t.color) ? undefined : HL_COLORS[0])}><Icon name="highlighter" /> Evidenziatore</button>
+      <button className={`ink-btn${t.tool === 'eraser' ? ' on' : ''}`} onClick={() => pick('eraser')}><Icon name="eraser" /> Gomma</button>
       {t.tool !== 'eraser' && (
         <>
           <span className="ink-sep" aria-hidden />
@@ -47,14 +48,14 @@ export function InkToolbar() {
         </>
       )}
       <span className="ink-sep" aria-hidden />
-      <button className="ink-btn" disabled={!t.lastPageId} onClick={() => t.lastPageId && void undoLast(t.lastPageId)}>↶ Annulla</button>
+      <button className="ink-btn" disabled={!t.lastPageId} onClick={() => t.lastPageId && void undoLast(t.lastPageId)}><Icon name="undo" /> Annulla</button>
       <button
         className={`ink-btn${t.fingerDraws ? ' on' : ''}`}
         onClick={() => setTool({ fingerDraws: !t.fingerDraws })}
         aria-pressed={t.fingerDraws}
         title="Spento: il dito sfoglia e fa zoom, scrive solo la penna"
       >
-        {t.fingerDraws ? '☝ Il dito scrive' : '☝ Il dito sfoglia'}
+        <Icon name="hand" /> {t.fingerDraws ? 'Il dito scrive' : 'Il dito sfoglia'}
       </button>
     </div>
   )

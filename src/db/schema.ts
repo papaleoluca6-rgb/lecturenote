@@ -111,6 +111,21 @@ export interface TranslationSegment {
   text: string
 }
 
+/** Flashcard di ripasso (scritta a mano o generata dall'AI facoltativa). Ripetizione a scatole di Leitner. */
+export interface Flashcard {
+  id: Id
+  lessonId: Id
+  front: string
+  back: string
+  /** Momento della lezione da cui viene (per riascoltare), se c'è. */
+  ts?: Sec
+  /** Scatola 0..4: più è alta, più tardi torna. */
+  box: number
+  /** Quando ripassarla (ms, Date.now()). */
+  due: number
+  createdAt: number
+}
+
 export interface Setting {
   key: string
   value: unknown
@@ -127,6 +142,7 @@ export const db = new Dexie('lecturenote') as Dexie & {
   transcript: EntityTable<TranscriptSegment, 'id'>
   translations: EntityTable<TranslationSegment, 'id'>
   settings: EntityTable<Setting, 'key'>
+  cards: EntityTable<Flashcard, 'id'>
 }
 
 // Per cambiare lo schema: aggiungere db.version(2) sotto, MAI modificare la versione 1.
@@ -142,3 +158,11 @@ db.version(1).stores({
   translations: 'id, lessonId, transcriptId, ts',
   settings: 'key',
 })
+
+// v2: flashcard di ripasso.
+db.version(2).stores({
+  cards: 'id, lessonId, due',
+})
+
+/** Tabelle con i dati di una lezione (indicizzate per lessonId): eliminare o reimportare una lezione le tocca tutte. */
+export const lessonTables = () => [db.audio, db.slides, db.pins, db.notes, db.ink, db.transcript, db.translations, db.cards]

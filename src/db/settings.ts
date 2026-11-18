@@ -12,6 +12,8 @@ export interface SettingsMap {
   'stt.provider': 'webspeech-device' | 'webspeech' | 'gemini-chunks'
   'translator.provider': 'chrome' | 'gemini' | ChatProviderId
   'ui.recordingDefaultLang': SpokenLang
+  /** Sottotitoli tradotti mentre si registra. Spenti di default: su Android Web Speech può contendere il microfono. */
+  'live.captions': 'on' | 'off'
 }
 export type SettingKey = keyof SettingsMap
 
@@ -23,13 +25,15 @@ export const DEFAULTS: SettingsMap = {
   'stt.provider': 'webspeech-device',
   'translator.provider': 'chrome',
   'ui.recordingDefaultLang': 'zh+en',
+  'live.captions': 'off',
 }
 
 /** Valori ammessi per le impostazioni a scelta: un valore sconosciuto (file vecchio o modificato) vale il default. */
 const ALLOWED: { [K in SettingKey]?: readonly string[] } = {
   'stt.provider': ['webspeech-device', 'webspeech', 'gemini-chunks'],
   'translator.provider': ['chrome', 'gemini', 'qwen', 'deepseek', 'kimi'],
-  'ui.recordingDefaultLang': ['zh', 'en', 'zh+en'],
+  'ui.recordingDefaultLang': ['zh', 'en', 'zh+en', 'it'],
+  'live.captions': ['on', 'off'],
 }
 
 export async function getSetting<K extends SettingKey>(key: K): Promise<SettingsMap[K]> {
