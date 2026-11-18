@@ -26,5 +26,11 @@ export async function selfCheckBackup() {
   let rejected = false
   try { await decode(new Blob(['garbage'])) } catch { rejected = true }
   eq(rejected, true)
+  const d = new Date(5)
+  const { tables: t2 } = await decode(new File([encode({ x: [{ d }] }, 1)], 'y.lnbak'))
+  eq(typeof (t2.x[0] as { d: unknown }).d, 'string') // Date -> JSON string, non mangled to {}
+  rejected = false
+  try { await decode(file.slice(0, file.size - 1)) } catch { rejected = true } // file troncato
+  eq(rejected, true)
   return 'selfCheckBackup OK'
 }

@@ -5,8 +5,14 @@ export const VERSION = 1
 export type Tables = Record<string, unknown[]>
 export interface Meta { version: number; createdAt: number; dbVersion: number }
 
-const isPlain = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !(v instanceof Blob)
+const bad = () => new Error('Il file non è un backup di LectureNote valido.')
+
+/** Solo oggetti semplici: Date, Map, typed array ecc. passano invariati. */
+const isPlain = (v: unknown): v is Record<string, unknown> => {
+  if (typeof v !== 'object' || v === null) return false
+  const p = Object.getPrototypeOf(v)
+  return p === Object.prototype || p === null
+}
 
 /** Copia di `v` con ogni Blob sostituito da un riferimento; i Blob vanno in `parts`. */
 function strip(v: unknown, parts: Blob[], pos: { n: number }): unknown {
@@ -26,7 +32,11 @@ function revive(v: unknown, file: Blob, base: number): unknown {
   if (Array.isArray(v)) return v.map((x) => revive(x, file, base))
   if (!isPlain(v)) return v
   const b = v.__blob as { offset: number; size: number; type: string } | undefined
-  if (b && Object.keys(v).length === 1) return file.slice(base + b.offset, base + b.offset + b.size, b.type)
+  if (b && Object.keys(v).length === 1) {
+    const ok = Number.isInteger(b.offset) && Number.isInteger(b.size) && b.offset >= 0 && b.size >= 0
+    if (!ok || base + b.offset + b.size > file.size) throw bad()
+    return file.slice(base + b.offset, base + b.offset + b.size, b.type)
+  }
   return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, revive(x, file, base)]))
 }
 
@@ -38,7 +48,6 @@ export function encode(tables: Tables, dbVersion: number): Blob {
 }
 
 export async function decode(file: Blob): Promise<{ meta: Meta; tables: Tables }> {
-  const bad = () => new Error('Il file non è un backup di LectureNote valido.')
   const head = await file.slice(0, 64).text()
   if (!head.startsWith(MAGIC)) throw bad()
   const m = /^(\d{1,12})\n/.exec(head.slice(MAGIC.length))
@@ -49,7 +58,7 @@ export async function decode(file: Blob): Promise<{ meta: Meta; tables: Tables }
   let data: { version?: number; createdAt: number; dbVersion: number; tables?: Tables }
   try { data = JSON.parse(await file.slice(start, start + jsonLen).text()) } catch { throw bad() }
   if (data.version !== VERSION) throw new Error("Versione del backup non supportata: aggiorna l'app e riprova.")
-  if (!isPlain(data.tables)) throw bad()
+  if (!isPlain(data.tables) || !Object.values(data.tables).every(Array.isArray)) throw bad()
   const tables = revive(data.tables, file, start + jsonLen) as Tables
   return { meta: { version: VERSION, createdAt: data.createdAt, dbVersion: data.dbVersion }, tables }
 }

@@ -29,13 +29,17 @@ export async function importBackup(file: File, onProgress: (msg: string) => void
   const known = db.tables.filter((t) => t.name in tables)
   const unknown = Object.keys(tables).filter((n) => !db.tables.some((t) => t.name === n))
   const counts: Record<string, number> = {}
-  await db.transaction('rw', known, async () => {
-    let i = 0
-    for (const t of known) {
-      onProgress(`Importo ${t.name}… ${++i}/${known.length} tabelle`)
-      await t.bulkPut(tables[t.name])
-      counts[t.name] = tables[t.name].length
-    }
-  })
+  try {
+    await db.transaction('rw', known, async () => {
+      let i = 0
+      for (const t of known) {
+        onProgress(`Importo ${t.name}… ${++i}/${known.length} tabelle`)
+        await t.bulkPut(tables[t.name])
+        counts[t.name] = tables[t.name].length
+      }
+    })
+  } catch (e) {
+    throw new Error(`Importazione non riuscita: ${e instanceof Error ? e.message : String(e)}`)
+  }
   return { counts, unknown }
 }
