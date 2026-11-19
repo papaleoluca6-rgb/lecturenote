@@ -19,15 +19,17 @@ export interface ToolState {
   hlColor: string
   /** Se vero anche il dito scrive; altrimenti il dito sfoglia e fa zoom, e scrive solo la penna (o il mouse). */
   fingerDraws: boolean
-  /** Ultima pagina su cui si è scritto: «Annulla» agisce lì. */
-  lastPageId?: Id
-  /** Tratti tolti con «Annulla», da rimettere con «Ripeti» (si svuota a ogni tratto nuovo). */
-  redo: { pageId: Id; stroke: Stroke }[]
+  /** Azioni da annullare, l'ultima in fondo: tratti scritti o cancellati con la gomma. */
+  undo: InkOp[]
+  /** Azioni annullate, da rifare con «Ripeti» (si svuota a ogni azione nuova). */
+  redo: InkOp[]
   /** true mentre la S Pen è sospesa sopra lo schermo o scrive: la barra lo mostra. */
   penSeen: boolean
+  /** Ultimo salvataggio di penna o testo fallito (es. spazio esaurito): la barra lo mostra finché uno riesce. */
+  saveError: string
 }
 
-let state: ToolState = { tool: 'pen', color: '--ink-black', size: SIZES.medio, textSize: TEXT_SIZES.medio, penColor: '--ink-black', hlColor: '--ink-hl-yellow', fingerDraws: false, redo: [], penSeen: false }
+let state: ToolState = { tool: 'pen', color: '--ink-black', size: SIZES.medio, textSize: TEXT_SIZES.medio, penColor: '--ink-black', hlColor: '--ink-hl-yellow', fingerDraws: false, undo: [], redo: [], penSeen: false, saveError: '' }
 const subs = new Set<() => void>()
 
 export function setTool(patch: Partial<ToolState>): void {
@@ -36,6 +38,29 @@ export function setTool(patch: Partial<ToolState>): void {
 }
 
 export const getTool = (): ToolState => state
+
+/** Un'azione della penna: tratti aggiunti (penna, evidenziatore: anche più fasce insieme) o tolti dalla gomma. */
+export interface InkOp {
+  pageId: Id
+  kind: 'add' | 'erase'
+  strokes: Stroke[]
+}
+
+/** Esito di un salvataggio di penna o testo: senza errore toglie l'avviso, con errore lo mostra. */
+export function inkSaved(err?: unknown): void {
+  if (!err) {
+    if (state.saveError) setTool({ saveError: '' })
+    return
+  }
+  console.error('Salvataggio della penna non riuscito', err)
+  const full = err instanceof Error && /quota/i.test(`${err.name} ${err.message}`)
+  setTool({ saveError: full ? 'Spazio esaurito: l’ultima modifica non è stata salvata.' : 'Salvataggio non riuscito: riprova.' })
+}
+
+/** Registra un'azione per «Annulla» (al massimo le ultime 100). */
+export function pushOp(op: InkOp): void {
+  setTool({ undo: [...state.undo.slice(-99), op], redo: [] })
+}
 
 export function useInkTool(): ToolState {
   return useSyncExternalStore(

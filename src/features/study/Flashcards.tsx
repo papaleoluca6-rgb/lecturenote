@@ -6,6 +6,7 @@ import { Icon } from '../../lib/Icon'
 import { fmtSecs } from '../../lib/time'
 import { generateCards, type AiChoice } from './ai'
 import { addCards, grade, isDue } from './cards'
+import { textCutAt } from './events'
 
 /** Ripasso a carte: mostra la domanda, poi la risposta, e chiede se la sapevi. */
 function Review({ cards, onDone, onPlay }: { cards: Flashcard[]; onDone: () => void; onPlay?: (ts: Sec) => void }) {
@@ -55,6 +56,7 @@ export function Flashcards({ lessonId, ai, source, now, onPlay }: Props) {
   const [reviewing, setReviewing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [cut, setCut] = useState<string | null>(null)
   const due = cards.filter((c) => isDue(c)).sort((a, b) => a.due - b.due)
 
   const add = async () => {
@@ -69,7 +71,10 @@ export function Flashcards({ lessonId, ai, source, now, onPlay }: Props) {
     if (!text.trim()) return setError('Serve prima del testo: frasi trascritte o note.')
     setBusy(true)
     setError('')
-    try { await addCards(lessonId, await generateCards(ai, text)) } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
+    try {
+      await addCards(lessonId, await generateCards(ai, text))
+      setCut(textCutAt(text))
+    } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
   }
   const remove = (c: Flashcard) => { if (confirm('Eliminare questa flashcard?')) void db.cards.delete(c.id) }
 
@@ -80,6 +85,7 @@ export function Flashcards({ lessonId, ai, source, now, onPlay }: Props) {
         {ai && <button className="ui-btn sm" disabled={busy} onClick={() => void generate()}><Icon name="sparkles" size={16} /> {busy ? 'Creo…' : `Crea con ${aiLabel(ai.id)}`}</button>}
         {cards.length > 0 && !reviewing && <button className="ui-btn primary sm" disabled={!due.length} onClick={() => setReviewing(true)}>Ripassa{due.length ? ` (${due.length})` : ''}</button>}
       </header>
+      {cut && <p className="ui-muted">Testo troppo lungo: l'AI ha letto fino a {cut}.</p>}
       {error && <p className="ui-error" role="alert">{error}</p>}
       {reviewing ? (
         <Review cards={due} onDone={() => setReviewing(false)} onPlay={onPlay} />

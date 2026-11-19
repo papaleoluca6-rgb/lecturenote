@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useRef, useState } from 'react'
-import { db, type Id, type Sec } from '../../../db/schema'
+import { memo, useEffect, useRef, useState } from 'react'
+import { db, type Id, type Sec, type TranscriptSegment } from '../../../db/schema'
 import { setSetting, useSetting } from '../../../db/settings'
 import { Icon } from '../../../lib/Icon'
 import { fmtSecs } from '../../../lib/time'
@@ -72,23 +72,28 @@ export function CaptionsPanel({ lessonId, recording, running, now, stream }: Pro
           const el = e.currentTarget
           stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40
         }}>
-          {lines?.map((l) => (
-            <li key={l.id} className="cap-line">
-              <span className="cap-ts mono">{fmtSecs(l.ts)}</span>
-              {/* Finché la traduzione non arriva (o se non c'è, es. lezioni importate) si legge l'originale. */}
-              {tr?.has(l.id) ? (
-                <div>
-                  <p className="cap-it">{tr.get(l.id)}</p>
-                  <p className="cap-orig" lang={l.lang === 'zh' ? 'zh-CN' : l.lang}>{l.text}</p>
-                </div>
-              ) : (
-                <p className="cap-it" lang={l.lang === 'zh' ? 'zh-CN' : l.lang}>{l.text}</p>
-              )}
-            </li>
-          ))}
+          <Lines lines={lines} tr={tr} />
           {live.interim && <li className="cap-line interim"><span className="cap-ts mono">…</span><p className="cap-orig">{live.interim}</p></li>}
         </ol>
       )}
     </section>
   )
 }
+
+/** Righe salvate: memo, così il testo provvisorio (che cambia di continuo) non ridisegna migliaia di righe. */
+const Lines = memo(function Lines({ lines, tr }: { lines?: TranscriptSegment[]; tr?: Map<Id, string> }) {
+  return lines?.map((l) => (
+    <li key={l.id} className="cap-line">
+      <span className="cap-ts mono">{fmtSecs(l.ts)}</span>
+      {/* Finché la traduzione non arriva (o se non c'è, es. lezioni importate) si legge l'originale. */}
+      {tr?.has(l.id) ? (
+        <div>
+          <p className="cap-it">{tr.get(l.id)}</p>
+          <p className="cap-orig" lang={l.lang === 'zh' ? 'zh-CN' : l.lang}>{l.text}</p>
+        </div>
+      ) : (
+        <p className="cap-it" lang={l.lang === 'zh' ? 'zh-CN' : l.lang}>{l.text}</p>
+      )}
+    </li>
+  ))
+})

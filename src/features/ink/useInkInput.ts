@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useLayoutEffect, useRef, useState, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent, type RefObject } from 'react'
 import type { Id, InkPage, Sec, Stroke } from '../../db/schema'
-import { addStroke, removeStrokes, type InkTarget } from './data'
+import { addStroke, removeStrokes, strokeKey, type InkTarget } from './data'
 import { ERASER_R, hitsStroke, strokePath } from './freehand'
 import { hideCursor, showCursor } from './inkCursor'
 import { snapHighlight, type textLines } from './snap'
-import { getTool, setTool, tokenColor } from './toolStore'
+import { getTool, inkSaved, pushOp, setTool, tokenColor } from './toolStore'
 
 /** Dopo l'ultimo segnale della penna (anche in hover) il palmo resta ignorato per questo tempo. */
 const PALM_MS = 800
@@ -13,9 +13,6 @@ const r4 = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 10000) / 1000
 type Ev = RPointerEvent<SVGSVGElement>
 type Pt = Stroke['points'][number]
 
-/** Identità di un tratto anche dopo il passaggio dal database (che ne salva una copia). */
-const NONE = new Set<number>()
-const strokeKey = (s: Stroke) => `${s.ts}|${s.points.length}|${s.points[0]?.join(',')}`
 
 /** Elementi SVG aggiornati direttamente (senza render di React): tratto in corso e cursore della penna. */
 export interface InkRefs {
@@ -33,13 +30,21 @@ const sideButton = (e: Ev) => e.pointerType === 'pen' && ((e.buttons & (2 | 32))
  */
 export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | undefined, vbH: number, now: () => Sec, refs: InkRefs, lines: ReturnType<typeof textLines> = []) {
   const [pending, setPending] = useState<Stroke[]>([])
-  /** Tratti cancellati dalla gomma, validi solo per la versione della pagina su cui si è cancellato. */
-  const [erasedOn, setErasedOn] = useState<{ page: InkPage | undefined; set: Set<number> }>({ page: undefined, set: new Set() })
+  /** Tratti toccati dalla gomma (per contenuto, non per posizione), nascosti finché il database non li toglie. */
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   // Tratti ormai nel database: non vanno più disegnati come «pending». Scrivendo veloce, il tratto successivo
   // può essere ancora in salvataggio: resta visibile finché non arriva anche lui.
   const saved = useMemo(() => new Set((page?.strokes ?? []).map(strokeKey)), [page])
   const shownPending = useMemo(() => pending.filter((s) => !saved.has(strokeKey(s))), [pending, saved])
-  const hidden = erasedOn.page === page ? erasedOn.set : NONE
+  // Appena un tratto arriva nel database esce dai «pending»: se poi «Annulla» o la gomma lo tolgono,
+  // non deve ricomparire da qui (prima restava lì fino al tratto successivo).
+  const [prunedFor, setPrunedFor] = useState(page)
+  if (page !== prunedFor) {
+    setPrunedFor(page)
+    if (pending.some((s) => saved.has(strokeKey(s)))) setPending(pending.filter((s) => !saved.has(strokeKey(s))))
+    // Tratti ormai tolti dal database: non serve più nasconderli (e se «Annulla» li rimette, devono vedersi).
+    if ([...hidden].some((k) => !saved.has(k))) setHidden(new Set([...hidden].filter((k) => saved.has(k))))
+  }
   const drawing = useRef<number | null>(null)
   const erasing = useRef(false)
   const lastPen = useRef(-Infinity)
@@ -48,7 +53,7 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
   const predicted = useRef<Pt[]>([])
   const frame = useRef(0)
   /** Tratti toccati dalla gomma nel gesto in corso (ref: gli eventi arrivano prima del nuovo render). */
-  const erased = useRef(new Set<number>())
+  const erased = useRef(new Set<string>())
   const lastErase = useRef<[number, number] | null>(null)
 
   useEffect(() => () => cancelAnimationFrame(frame.current), [])
@@ -100,10 +105,13 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
       lastErase.current = [x, y]
       return [a, [x, y]]
     })
-    const add = page.strokes.flatMap((s, i) => (!erased.current.has(i) && segs.some(([a, b]) => hitsStroke(s, a, b, vbH, ERASER_R)) ? [i] : []))
+    const add = page.strokes.flatMap((s) => {
+      const k = strokeKey(s)
+      return !erased.current.has(k) && segs.some(([a, b]) => hitsStroke(s, a, b, vbH, ERASER_R)) ? [k] : []
+    })
     if (!add.length) return
-    add.forEach((i) => erased.current.add(i))
-    setErasedOn({ page, set: new Set(erased.current) })
+    add.forEach((k) => erased.current.add(k))
+    setHidden((h) => new Set([...h, ...add]))
   }
 
   const onPointerDown = (e: Ev) => {
@@ -179,10 +187,29 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
     if (s) {
       // Evidenziatore: la traccia a mano diventa una fascia esatta sulle parole (o almeno dritta).
       const add = (s.tool === 'highlighter' && snapHighlight(s, lines, vbH)) || [s]
-      setPending((p) => [...p.filter((x) => !saved.has(strokeKey(x))), ...add])
-      void addStroke(lessonId, target, add).then((pageId) => setTool({ lastPageId: pageId, redo: [] }))
+      setPending((p) => [...p, ...add])
+      addStroke(lessonId, target, add)
+        .then((pageId) => {
+          pushOp({ pageId, kind: 'add', strokes: add })
+          inkSaved()
+        })
+        .catch((err: unknown) => {
+          // Non salvato: il tratto sparisce subito invece di sembrare salvato e mancare alla riapertura.
+          setPending((p) => p.filter((x) => !add.includes(x)))
+          inkSaved(err)
+        })
     } else if (page && erased.current.size) {
-      void removeStrokes(page.id, erased.current)
+      const pageId = page.id
+      const keys = erased.current
+      removeStrokes(pageId, keys)
+        .then((removed) => {
+          if (removed.length) pushOp({ pageId, kind: 'erase', strokes: removed })
+          inkSaved()
+        })
+        .catch((err: unknown) => {
+          setHidden((h) => new Set([...h].filter((k) => !keys.has(k))))
+          inkSaved(err)
+        })
       erased.current = new Set()
     }
   }

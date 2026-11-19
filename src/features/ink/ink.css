@@ -9,6 +9,7 @@
 .ink-bar .ink-btn:hover { border-color: var(--border-strong); }
 .ink-bar .ink-btn[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 .ink-bar .ink-btn:disabled { opacity: 0.35; cursor: default; }
+.ink-err { flex-basis: 100%; grid-column: 1 / -1; margin: 0; padding: 6px 8px; border-radius: var(--r-sm); background: var(--rec-soft); color: var(--rec); font-size: var(--fs-xs); line-height: 1.3; }
 .ink-sep { width: 1px; height: 28px; background: var(--border-strong); margin: 0 4px; flex: none; }
 
 /* Colori: cerchi pieni, anello quando scelti */

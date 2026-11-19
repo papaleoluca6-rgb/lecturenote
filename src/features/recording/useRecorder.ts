@@ -32,7 +32,8 @@ export function useRecorder(lessonId: Id) {
   useEffect(() => {
     if (state === 'idle') return
     const id = window.setInterval(() => {
-      setElapsed(rec.elapsedSec())
+      // Secondi interi: il timer mostra solo quelli, e così la schermata si ridisegna una volta al secondo invece di 4.
+      setElapsed(Math.floor(rec.elapsedSec()))
       void rec.tick()
     }, 250)
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
@@ -55,7 +56,7 @@ export function useRecorder(lessonId: Id) {
   return {
     state,
     elapsed,
-    error,
+    error: error || rec.saveError,
     saving: rec.saving,
     wakeLock: rec.wake.active,
     /** Posizione esatta sulla timeline (per agganciare slide e note al tempo). */

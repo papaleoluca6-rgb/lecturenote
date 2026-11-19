@@ -26,6 +26,11 @@ export function encodeWav(samples: Float32Array, rate = RATE): Blob {
 export const silenceWav = (sec = 1) => encodeWav(new Float32Array(RATE * sec))
 
 export async function blobToWav16k(blob: Blob): Promise<Blob> {
+  return (await blobToWav16kRms(blob)).wav
+}
+
+/** Come blobToWav16k, più il volume medio (RMS, 0–1) del blocco: serve a saltare i blocchi muti. */
+export async function blobToWav16kRms(blob: Blob): Promise<{ wav: Blob; rms: number }> {
   const ctx = new AudioContext()
   let decoded: AudioBuffer
   try {
@@ -38,7 +43,10 @@ export async function blobToWav16k(blob: Blob): Promise<Blob> {
   src.buffer = decoded
   src.connect(off.destination)
   src.start()
-  return encodeWav((await off.startRendering()).getChannelData(0))
+  const samples = (await off.startRendering()).getChannelData(0)
+  let sum = 0
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i]
+  return { wav: encodeWav(samples), rms: Math.sqrt(sum / samples.length) }
 }
 
 export function toBase64(blob: Blob): Promise<string> {
@@ -57,9 +65,10 @@ export class BlockRecorder {
   private rec: MediaRecorder | null = null
   private stream: MediaStream
   private sec: number
-  private onBlock: (b: Blob, endAt: number) => void
+  private onBlock: (b: Blob, endAt: number, durSec: number) => void
 
-  constructor(stream: MediaStream, sec: number, onBlock: (b: Blob, endAt: number) => void) {
+  /** onBlock riceve anche la durata reale del blocco: l'ultimo, fermato da una pausa, è più corto di `sec`. */
+  constructor(stream: MediaStream, sec: number, onBlock: (b: Blob, endAt: number, durSec: number) => void) {
     this.stream = stream
     this.sec = sec
     this.onBlock = onBlock
@@ -70,7 +79,11 @@ export class BlockRecorder {
     const rec = new MediaRecorder(this.stream)
     const parts: Blob[] = []
     rec.ondataavailable = (e) => e.data.size && parts.push(e.data)
-    rec.onstop = () => this.onBlock(new Blob(parts, { type: rec.mimeType }), performance.now())
+    const t0 = performance.now()
+    rec.onstop = () => {
+      const end = performance.now()
+      this.onBlock(new Blob(parts, { type: rec.mimeType }), end, (end - t0) / 1000)
+    }
     rec.start()
     this.rec = rec
     this.timer = window.setTimeout(() => {

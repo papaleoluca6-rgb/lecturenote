@@ -3,6 +3,8 @@ export async function postJson<T>(url: string, headers: Record<string, string>, 
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   let res: Response
+  let text: string
+  // Il timeout copre anche la lettura della risposta: se la rete si blocca a metà, il bottone non resta in attesa per sempre.
   try {
     res = await fetch(url, {
       method: 'POST',
@@ -10,13 +12,13 @@ export async function postJson<T>(url: string, headers: Record<string, string>, 
       body: JSON.stringify(body),
       signal: ctrl.signal,
     })
+    text = await res.text()
   } catch (e) {
     if (ctrl.signal.aborted) throw new Error(`Timeout: nessuna risposta in ${timeoutMs / 1000} s`)
     throw new Error(`Server non raggiungibile (rete bloccata, DNS o CORS): ${(e as Error).message}`)
   } finally {
     clearTimeout(timer)
   }
-  const text = await res.text()
   if (!res.ok) {
     let msg = text.slice(0, 200)
     try {

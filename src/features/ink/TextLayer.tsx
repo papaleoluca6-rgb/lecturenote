@@ -2,7 +2,7 @@ import { useRef, useState, type PointerEvent as RPointerEvent } from 'react'
 import { newId, type Id, type InkPage, type Sec } from '../../db/schema'
 import { putText, removeText, type InkTarget } from './data'
 import { TextItem } from './TextItem'
-import { tokenColor, useInkTool } from './toolStore'
+import { inkSaved, tokenColor, useInkTool } from './toolStore'
 
 /** Un tocco (non un trascinamento né un pizzico) crea una casella. */
 const TAP_PX = 10
@@ -60,7 +60,8 @@ export function TextLayer({ lessonId, target, page, now }: Props) {
     const y = (cy - rect.top - (size * rect.width * 1.4) / 2) / rect.height
     const id = newId()
     const r4 = (n: number) => Math.round(Math.max(0, n) * 10000) / 10000
-    void putText(lessonId, target, { id, x: r4(x), y: r4(y), w: NEW_W, text: '', color: tokenColor(t.color), size, ts: Math.round(now() * 100) / 100 })
+    putText(lessonId, target, { id, x: r4(x), y: r4(y), w: NEW_W, text: '', color: tokenColor(t.color), size, ts: Math.round(now() * 100) / 100 })
+      .then(() => inkSaved(), inkSaved)
     setSelected(id)
     setFocusId(id)
   }
@@ -77,10 +78,10 @@ export function TextLayer({ lessonId, target, page, now }: Props) {
           autoFocus={focusId === b.id}
           layer={ref}
           onSelect={() => setSelected(b.id)}
-          onSave={(box) => void putText(lessonId, target, box)}
+          onSave={(box) => void putText(lessonId, target, box).then(() => inkSaved(), inkSaved)}
           onRemove={() => {
             if (selected === b.id) setSelected(undefined)
-            void removeText(target, b.id)
+            void removeText(target, b.id).then(() => inkSaved(), inkSaved)
           }}
         />
       ))}

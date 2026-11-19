@@ -24,6 +24,16 @@ Una riga = una sessione di lavoro. Stato: ⬜ da fare · 🟨 in corso · ✅ fa
 - **Ritorno al punto lasciato** (`lib/lessonView.ts`, localStorage del tablet): per ogni lezione si ricordano scheda, slide e pagina bianca; si ricorda anche la lezione aperta, così se Android ricarica l'app si riapre lì. Le impostazioni aperte dalla lezione la lasciano montata (nascosta): tornando è identica.
 - Verificato sul PC (browser 960×600, mouse); da provare sul tablet: tocco col dito e con la S Pen per creare e spostare le caselle, tastiera di Android che si apre sulla casella nuova.
 
+## Correzioni dopo il controllo del codice (2026-11-19)
+
+- **Penna:** «Annulla»/«Ripeti» lavorano per azioni (tratto o cancellazione con la gomma); la gomma riconosce i tratti per contenuto; i tratti annullati o cancellati non ricompaiono più; i tratti si ridisegnano solo se cambiano; un salvataggio fallito (es. spazio esaurito) viene mostrato nella barra.
+- **Caselle di testo:** spostamento fluido, senza ritorno alla posizione vecchia; incluse nell'export NotebookLM, nella timeline del Ripasso e nel testo dato all'AI (`lib/timeline.ts`, logica unica per export e ripasso).
+- **Registrazione:** un salvataggio dell'audio fallito viene mostrato nel registratore; timer aggiornato 1 volta al secondo (prima 4); lo schermo non resta acceso se si esce subito dopo «Registra». `navigator.storage.persist()` all'avvio: Chrome non cancella i dati quando manca spazio.
+- **Slide:** un import fallito non lascia presentazioni a metà; pagine scritte a gruppi di 8; uscendo da una lezione vuota durante l'import non restano slide orfane.
+- **Traduzione live:** le frasi rimaste senza traduzione vengono ritradotte quando la rete torna; con Gemini i blocchi di silenzio non vengono inviati (soglia `MIN_RMS` da verificare in aula) e l'orario dell'ultimo blocco prima di una pausa è giusto; il pannello sottotitoli non ridisegna tutta la lezione a ogni parola.
+- **Altro:** reimportare un file della vecchia app non sovrascrive più una lezione già importata; riassunto e flashcard AI leggono fino a 200.000 caratteri e avvisano se il testo è stato tagliato; il timeout delle richieste AI copre anche la lettura della risposta.
+- Non fatti (minori): backup con molta penna in memoria (stima, non misurato), registratore che si ferma da solo, «Annulla» su una pagina non visibile, file inutilizzato `translation/types.ts`.
+
 ## Traduttore in tempo reale (cinese→italiano, inglese→italiano)
 
 **Come funziona:** il docente parla → stadio 1 trasforma il parlato in testo cinese o inglese → stadio 2 traduce in italiano ogni frase completa → sottotitoli a due righe (originale e italiano), salvati sulla timeline della lezione e collegati all'audio.

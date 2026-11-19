@@ -1,7 +1,7 @@
 import { Icon, type IconName } from '../../lib/Icon'
-import { redoStroke, undoLast } from './data'
+import { removeStrokes, restoreStrokes, strokeKey } from './data'
 import { HIGHLIGHTER_SIZE, SIZES } from './freehand'
-import { TEXT_SIZES, getTool, setTool, useInkTool, type InkTool } from './toolStore'
+import { TEXT_SIZES, getTool, inkSaved, setTool, useInkTool, type InkOp, type InkTool } from './toolStore'
 import './ink.css'
 
 const PEN_COLORS = ['--ink-black', '--ink-blue', '--ink-red', '--ink-green', '--ink-purple', '--ink-orange']
@@ -39,20 +39,27 @@ function pickColor(color: string) {
   setTool(getTool().tool === 'highlighter' ? { color, hlColor: color } : { color, penColor: color })
 }
 
+/** Applica un'azione (`forward`) o il suo contrario: aggiungere o togliere quei tratti. */
+function apply(op: InkOp, forward: boolean) {
+  const add = (op.kind === 'add') === forward
+  return add ? restoreStrokes(op.pageId, op.strokes) : removeStrokes(op.pageId, new Set(op.strokes.map(strokeKey)))
+}
+
+/** «Annulla» disfa l'ultima azione, che sia un tratto o una cancellazione con la gomma. */
 async function undo() {
-  const pageId = getTool().lastPageId
-  if (!pageId) return
-  const stroke = await undoLast(pageId)
-  if (stroke) setTool({ redo: [...getTool().redo, { pageId, stroke }] })
+  const { undo: stack, redo } = getTool()
+  const op = stack.at(-1)
+  if (!op) return
+  setTool({ undo: stack.slice(0, -1), redo: [...redo, op] })
+  await apply(op, false).then(() => inkSaved(), inkSaved)
 }
 
 async function redo() {
-  const stack = getTool().redo
-  const last = stack.at(-1)
-  if (!last) return
-  setTool({ redo: stack.slice(0, -1) })
-  await redoStroke(last.pageId, last.stroke)
-  setTool({ lastPageId: last.pageId })
+  const { undo: stack, redo } = getTool()
+  const op = redo.at(-1)
+  if (!op) return
+  setTool({ redo: redo.slice(0, -1), undo: [...stack, op] })
+  await apply(op, true).then(() => inkSaved(), inkSaved)
 }
 
 /** Strumenti della penna, condivisi da slide e pagine bianche: colonna a sinistra in orizzontale, riga in verticale. */
@@ -63,6 +70,7 @@ export function InkToolbar({ focus, onFocus }: { focus: boolean; onFocus: () => 
 
   return (
     <div className="ink-bar" role="toolbar" aria-label="Strumenti penna">
+      {t.saveError && <p className="ink-err" role="alert">{t.saveError}</p>}
       {TOOLS.map((x) => (
         <button key={x.id} className="ui-btn icon-only ink-btn" aria-pressed={t.tool === x.id} aria-label={x.label} title={x.id === 'pen' && t.penSeen ? 'Penna (S Pen rilevata: il dito sfoglia, il palmo viene ignorato)' : x.title} onClick={() => pickTool(x.id)}>
           <Icon name={x.icon} />
@@ -114,10 +122,10 @@ export function InkToolbar({ focus, onFocus }: { focus: boolean; onFocus: () => 
         ))}
 
       <span className="ink-sep" aria-hidden />
-      <button className="ui-btn icon-only ink-btn" disabled={!t.lastPageId} aria-label="Annulla" title="Annulla l’ultimo tratto" onClick={() => void undo()}>
+      <button className="ui-btn icon-only ink-btn" disabled={!t.undo.length} aria-label="Annulla" title="Annulla l’ultima azione (tratto o cancellazione)" onClick={() => void undo()}>
         <Icon name="undo" />
       </button>
-      <button className="ui-btn icon-only ink-btn" disabled={!t.redo.length} aria-label="Ripeti" title="Ripeti il tratto annullato" onClick={() => void redo()}>
+      <button className="ui-btn icon-only ink-btn" disabled={!t.redo.length} aria-label="Ripeti" title="Ripeti l’azione annullata" onClick={() => void redo()}>
         <Icon name="redo" />
       </button>
 

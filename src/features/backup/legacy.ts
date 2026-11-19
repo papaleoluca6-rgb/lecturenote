@@ -57,9 +57,12 @@ function parse(text: string, name: string): LegacySession {
 }
 
 /** Importa una lezione; reimportare lo stesso file la sostituisce invece di duplicarla. */
-async function importOne(file: File): Promise<string> {
+/** Importa un file; restituisce il titolo, oppure null se la lezione era già stata importata. */
+async function importOne(file: File): Promise<string | null> {
   const s = parse(await file.text(), file.name)
   const lessonId = `legacy-${s.id}`
+  // Già importata: non si riscrive, altrimenti si perderebbe quello che è stato aggiunto dopo (penna, flashcard, traduzioni).
+  if (await db.lessons.get(lessonId)) return null
   const date = Date.parse(s.date ?? '') || file.lastModified || Date.now()
 
   const audio: AudioSegment[] = []
@@ -123,10 +126,21 @@ async function importOne(file: File): Promise<string> {
 /** Importa più file; un file rovinato non blocca gli altri. */
 export async function importLegacy(files: File[], onProgress: (msg: string) => void): Promise<string> {
   const ok: string[] = []
+  const skipped: string[] = []
   const errors: string[] = []
   for (const [i, f] of files.entries()) {
     onProgress(`Importo «${f.name}» (${i + 1}/${files.length})…`)
-    try { ok.push(await importOne(f)) } catch (e) { errors.push(e instanceof Error ? e.message : String(e)) }
+    try {
+      const title = await importOne(f)
+      if (title === null) skipped.push(f.name)
+      else ok.push(title)
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : String(e))
+    }
   }
-  return [ok.length && `Importate ${ok.length} lezioni: ${ok.join(', ')}.`, ...errors].filter(Boolean).join(' ')
+  return [
+    ok.length && `Importate ${ok.length} lezioni: ${ok.join(', ')}.`,
+    skipped.length && `Già importate, lasciate com'erano: ${skipped.join(', ')}.`,
+    ...errors,
+  ].filter(Boolean).join(' ')
 }

@@ -1,6 +1,8 @@
-import { slideNumbers } from '../../lib/slideNumbers'
-import { db, type Id, type Sec } from '../../db/schema'
+import { type Id, type Sec } from '../../db/schema'
+import { fmtSecs } from '../../lib/time'
+import { loadLessonEvents, type TimelineEvent } from '../../lib/timeline'
 
+// Le caselle di testo usano il tipo 'ink' (filtro "Penna" della timeline): sono scritti dello studente sulla pagina.
 export type EventKind = 'note' | 'slide' | 'phrase' | 'ink'
 
 /** Un momento della lezione da cui si può riascoltare. */
@@ -15,41 +17,42 @@ export interface LessonEvent {
   image?: Blob
 }
 
-/** Note, slide mostrate, frasi trascritte e pagine a penna, in ordine di tempo. */
-export async function loadTimeline(lessonId: Id): Promise<LessonEvent[]> {
-  const q = { lessonId }
-  const [notes, pins, slides, lines, trs, ink] = await Promise.all([
-    db.notes.where(q).toArray(), db.pins.where(q).toArray(), db.slides.where(q).toArray(),
-    db.transcript.where(q).toArray(), db.translations.where(q).toArray(), db.ink.where(q).toArray(),
-  ])
-  const slideById = new Map(slides.map((s) => [s.id, s]))
-  const num = slideNumbers(slides)
-  const trById = new Map(trs.map((t) => [t.transcriptId, t.text]))
-  const events: LessonEvent[] = []
-
-  for (const n of notes) events.push({ key: n.id, kind: 'note', ts: n.ts, title: n.photo ? 'Foto' : 'Nota', text: n.text, image: n.photo })
-  for (const p of pins) {
-    const s = slideById.get(p.slideId)
-    if (s) events.push({ key: p.id, kind: 'slide', ts: p.ts, title: `Slide ${num.get(s.id)?.n ?? ''} · ${s.deckName}`, image: s.thumb ?? s.image })
+function toEvent(e: TimelineEvent): LessonEvent {
+  switch (e.kind) {
+    case 'note': return { key: e.note.id, kind: 'note', ts: e.ts, title: e.note.photo ? 'Foto' : 'Nota', text: e.note.text, image: e.note.photo }
+    case 'slide': return { key: e.pin.id, kind: 'slide', ts: e.ts, title: `Slide ${e.num?.n ?? ''} · ${e.slide.deckName}`, image: e.slide.thumb ?? e.slide.image }
+    case 'phrase': return { key: e.line.id, kind: 'phrase', ts: e.ts, title: 'Frase', text: e.it ?? e.line.text, original: e.it ? e.line.text : undefined }
+    case 'ink': return { key: e.page.id, kind: 'ink', ts: e.ts, title: e.slide ? `Scritto sulla slide ${e.num?.n ?? ''}` : `Pagina a penna ${e.page.order + 1}` }
+    case 'text': return {
+      key: e.box.id, kind: 'ink', ts: e.ts, text: e.box.text,
+      title: e.slide ? `Testo scritto sulla slide ${e.num?.n ?? ''}` : `Testo scritto · pagina ${e.page.order + 1}`,
+    }
   }
-  for (const l of lines) {
-    const it = trById.get(l.id)
-    events.push({ key: l.id, kind: 'phrase', ts: l.ts, title: 'Frase', text: it ?? l.text, original: it ? l.text : undefined })
-  }
-  for (const page of ink) {
-    if (!page.strokes.length) continue
-    const ts = Math.min(...page.strokes.map((s) => s.ts))
-    const s = page.slideId ? slideById.get(page.slideId) : undefined
-    events.push({ key: page.id, kind: 'ink', ts, title: s ? `Scritto sulla slide ${num.get(s.id)?.n ?? ''}` : `Pagina a penna ${page.order + 1}` })
-  }
-  return events.sort((a, b) => a.ts - b.ts)
 }
 
-/** Testo della lezione per il riassunto e le flashcard AI: frasi (in italiano se tradotte) e note, con il tempo. */
-export function lessonText(events: LessonEvent[], maxChars = 60_000): string {
+/** Note, slide mostrate, frasi trascritte, pagine a penna e testo scritto, in ordine di tempo. */
+export const loadTimeline = async (lessonId: Id): Promise<LessonEvent[]> => (await loadLessonEvents(lessonId)).map(toEvent)
+
+const CUT = '[Testo interrotto qui: la lezione continua oltre '
+
+/** Testo della lezione per il riassunto e le flashcard AI: frasi (in italiano se tradotte), note e testo scritto, con il tempo. */
+export function lessonText(events: LessonEvent[], maxChars = 200_000): string {
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
-  const lines = events
-    .filter((e) => e.text && (e.kind === 'phrase' || e.kind === 'note'))
-    .map((e) => `[${fmt(e.ts)}]${e.kind === 'note' ? ' (nota dello studente)' : ''} ${e.text}`)
-  return lines.join('\n').slice(0, maxChars)
+  const out: string[] = []
+  let len = 0
+  for (const e of events) {
+    if (!e.text || e.kind === 'slide') continue
+    const who = e.kind === 'note' ? ' (nota dello studente)' : e.kind === 'ink' ? ' (scritto dallo studente)' : ''
+    const line = `[${fmt(e.ts)}]${who} ${e.text}`
+    if (len + line.length > maxChars) { out.push(`${CUT}${fmtSecs(e.ts)}]`); break }
+    out.push(line)
+    len += line.length + 1
+  }
+  return out.join('\n')
+}
+
+/** Se il testo per l'AI è stato tagliato, il minuto (mm:ss) fin dove arriva; altrimenti null. */
+export function textCutAt(text: string): string | null {
+  const i = text.lastIndexOf(CUT)
+  return i < 0 ? null : text.slice(i + CUT.length, -1)
 }

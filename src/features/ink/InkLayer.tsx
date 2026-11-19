@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { memo, useMemo, useRef } from 'react'
 import type { Id, Sec, Stroke } from '../../db/schema'
-import { findPage, type InkTarget } from './data'
+import { findPage, strokeKey, type InkTarget } from './data'
 import { VB_W, strokePath } from './freehand'
 import { textLines } from './snap'
 import { TextLayer } from './TextLayer'
@@ -19,13 +19,24 @@ interface Props {
   words?: number[]
 }
 
-function StrokePath({ s, vbH }: { s: Stroke; vbH: number }) {
-  return <path d={strokePath(s, vbH)} fill={s.color} opacity={s.tool === 'highlighter' ? 0.4 : 1} />
-}
+/** Un tratto: si ricalcola solo se cambia davvero (ogni salvataggio della pagina restituisce copie nuove degli stessi tratti). */
+const StrokePath = memo(
+  function StrokePath({ s, vbH }: { s: Stroke; vbH: number }) {
+    return <path d={strokePath(s, vbH)} fill={s.color} opacity={s.tool === 'highlighter' ? 0.4 : 1} />
+  },
+  (a, b) => a.vbH === b.vbH && a.s.color === b.s.color && a.s.size === b.s.size && strokeKey(a.s) === strokeKey(b.s),
+)
 
 /** Tratti già salvati: memorizzati, così disegnare non ricalcola tutta la pagina a ogni movimento. */
-const Saved = memo(function Saved({ strokes, vbH, hidden }: { strokes: Stroke[]; vbH: number; hidden: Set<number> }) {
-  return <g>{strokes.map((s, i) => (hidden.has(i) ? null : <StrokePath key={i} s={s} vbH={vbH} />))}</g>
+const Saved = memo(function Saved({ strokes, vbH, hidden }: { strokes: Stroke[]; vbH: number; hidden: Set<string> }) {
+  return (
+    <g>
+      {strokes.map((s) => {
+        const k = strokeKey(s)
+        return hidden.has(k) ? null : <StrokePath key={k} s={s} vbH={vbH} />
+      })}
+    </g>
+  )
 })
 
 /** Livello trasparente di scrittura a mano (e caselle di testo), sovrapposto esattamente alla pagina (anche quando la slide è ingrandita). */

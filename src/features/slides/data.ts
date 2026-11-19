@@ -11,31 +11,59 @@ async function nextPage(lessonId: Id): Promise<number> {
 
 const isPdf = (f: File) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
 
+/** La lezione è stata eliminata durante l'import (l'utente è uscito da una lezione vuota). */
+class LessonGone extends Error {}
+
+/** Pagine scritte insieme: poche per non tenere troppe immagini in memoria, abbastanza per non rileggere il deck a ogni pagina. */
+const BATCH = 8
+
 /** Importa PDF e immagini in coda alle slide della lezione. Restituisce l'id della prima slide importata. */
 export async function importFiles(lessonId: Id, files: File[], progress: Progress): Promise<Id | undefined> {
   let page = await nextPage(lessonId)
-  let first: Id | undefined
+  const saved: Id[] = []
+  let pending: Slide[] = []
+  const flush = async () => {
+    if (!pending.length) return
+    const batch = pending
+    pending = []
+    await db.transaction('rw', db.lessons, db.slides, async () => {
+      if (!(await db.lessons.get(lessonId))) throw new LessonGone()
+      await db.slides.bulkAdd(batch)
+    })
+    saved.push(...batch.map((s) => s.id))
+  }
   const save = async (deckName: string, r: RenderedPage) => {
-    const id = newId()
-    first ??= id
-    await db.slides.add({ id, lessonId, deckName, page: page++, ...r })
+    pending.push({ id: newId(), lessonId, deckName, page: page++, ...r })
+    if (pending.length >= BATCH) await flush()
   }
-  for (const f of files) {
-    const deck = f.name.replace(/\.[^.]+$/, '')
-    if (isPdf(f)) {
-      progress(`Apro ${f.name}…`)
-      // pdf.js è pesante: si carica solo al primo import, non all'avvio dell'app.
-      const { renderPdf } = await import('./pdfImport')
-      await renderPdf(await f.arrayBuffer(), async (r, i, total) => {
-        progress(`${f.name}: pagina ${i + 1} di ${total}`)
-        await save(deck, r)
-      })
-    } else if (f.type.startsWith('image/')) {
-      progress(`Importo ${f.name}…`)
-      await save(deck, await renderImage(f))
+  try {
+    for (const f of files) {
+      const deck = f.name.replace(/\.[^.]+$/, '')
+      if (isPdf(f)) {
+        progress(`Apro ${f.name}…`)
+        // pdf.js è pesante: si carica solo al primo import, non all'avvio dell'app.
+        const { renderPdf } = await import('./pdfImport')
+        await renderPdf(await f.arrayBuffer(), async (r, i, total) => {
+          progress(`${f.name}: pagina ${i + 1} di ${total}`)
+          await save(deck, r)
+        })
+      } else if (f.type.startsWith('image/')) {
+        progress(`Importo ${f.name}…`)
+        await save(deck, await renderImage(f))
+      }
     }
+    await flush()
+  } catch (err) {
+    // Niente mazzi a metà: si toglie quanto già scritto da questo import (riprovare non crea doppioni).
+    await db.transaction('rw', db.slides, db.pins, db.ink, async () => {
+      await db.pins.where('lessonId').equals(lessonId).filter((p) => saved.includes(p.slideId)).delete()
+      await db.ink.where('slideId').anyOf(saved).delete()
+      await db.slides.bulkDelete(saved)
+    })
+    if (err instanceof LessonGone) return undefined
+    throw err
   }
-  return first
+  return saved[0]
 }
 
 /** Elimina tutte le slide di una presentazione, i loro agganci al tempo e gli appunti a penna scritti sopra. */

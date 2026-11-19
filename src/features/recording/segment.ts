@@ -5,7 +5,7 @@ const CHUNK_MS = 5000
 const SAVE_EVERY_MS = 30_000
 const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
 
-export const pickMime = (): string => MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported(m)) ?? ''
+const pickMime = (): string => MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported(m)) ?? ''
 
 /** Un MediaRecorder = un AudioSegment salvato in db.audio. Pausa e ripresa restano nello stesso segmento. */
 export class Segment {
@@ -21,8 +21,11 @@ export class Segment {
   private readonly lessonId: Id
   readonly index: number
   readonly startSec: Sec
+  /** Esito di ogni salvataggio: messaggio d'errore, oppure '' quando riesce. */
+  private readonly onSaved: (error: string) => void
 
-  constructor(stream: MediaStream, lessonId: Id, index: number, startSec: Sec) {
+  constructor(stream: MediaStream, lessonId: Id, index: number, startSec: Sec, onSaved: (error: string) => void) {
+    this.onSaved = onSaved
     this.lessonId = lessonId
     this.index = index
     this.startSec = startSec
@@ -95,6 +98,14 @@ export class Segment {
           await db.lessons.update(this.lessonId, { durationSec: this.startSec + durationSec, updatedAt: Date.now() })
         }),
       )
-      .catch((err: unknown) => console.error('Salvataggio audio non riuscito', err))
+      .then(() => this.onSaved(''))
+      .catch((err: unknown) => {
+        // Ogni salvataggio riscrive tutto il segmento: liberato lo spazio, il successivo recupera anche questo.
+        console.error('Salvataggio audio non riuscito', err)
+        const full = err instanceof Error && /quota/i.test(`${err.name} ${err.message}`)
+        this.onSaved(full
+          ? 'Spazio esaurito sul tablet: l’audio NON viene salvato. Libera spazio (es. esporta e cancella vecchie lezioni): il prossimo salvataggio recupera tutto.'
+          : 'Salvataggio dell’audio non riuscito: la registrazione continua e riprova tra 30 secondi.')
+      })
   }
 }

@@ -24,6 +24,8 @@ export class LessonRecorder {
   state: RecState = 'idle'
   /** true mentre l'ultimo pezzo di audio viene scritto su IndexedDB dopo lo stop. */
   saving = false
+  /** Ultimo salvataggio dell'audio fallito (es. spazio esaurito): va mostrato, altrimenti si perde la lezione senza saperlo. */
+  saveError = ''
   private starting = false
   /** Freccia indietro premuta mentre start() aspettava: il microfono appena aperto va richiuso. */
   private cancelled = false
@@ -31,6 +33,12 @@ export class LessonRecorder {
   private seg: Segment | null = null
   private baseSec: Sec = 0
   readonly wake = new ScreenWakeLock()
+
+  private onSaved = (error: string) => {
+    if (error === this.saveError) return
+    this.saveError = error
+    this.onChange()
+  }
 
   private onHidden = () => {
     if (document.visibilityState === 'hidden') this.seg?.flush()
@@ -93,7 +101,7 @@ export class LessonRecorder {
     if (this.cancelled) return stream.getTracks().forEach((t) => t.stop())
     this.stream = stream
     for (const t of this.stream.getAudioTracks()) t.addEventListener('ended', () => void this.stop())
-    this.seg = new Segment(this.stream, this.lessonId, nextIndex, this.baseSec)
+    this.seg = new Segment(this.stream, this.lessonId, nextIndex, this.baseSec, this.onSaved)
     this.state = 'recording'
     document.addEventListener('visibilitychange', this.onHidden)
     await this.wake.acquire()
@@ -118,7 +126,7 @@ export class LessonRecorder {
   async tick(): Promise<void> {
     const old = this.seg
     if (!old || !this.stream || this.state !== 'recording' || old.durationSec() < ROLLOVER_SEC) return
-    this.seg = new Segment(this.stream, this.lessonId, old.index + 1, old.startSec + old.durationSec())
+    this.seg = new Segment(this.stream, this.lessonId, old.index + 1, old.startSec + old.durationSec(), this.onSaved)
     await old.stop()
   }
 

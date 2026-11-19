@@ -28,8 +28,7 @@ const own = (e: RPointerEvent) => {
 export function TextItem({ box, active, selected, autoFocus, layer, onSelect, onSave, onRemove }: Props) {
   const [draft, setDraft] = useState(box.text)
   const [seen, setSeen] = useState(box.text)
-  /** Posizione e larghezza durante il trascinamento (salvate al rilascio). */
-  const [geo, setGeo] = useState<{ x: number; y: number; w: number } | null>(null)
+  const root = useRef<HTMLDivElement>(null)
   const area = useRef<HTMLTextAreaElement>(null)
   const timer = useRef(0)
   const [focused, setFocused] = useState(false)
@@ -85,6 +84,8 @@ export function TextItem({ box, active, selected, autoFocus, layer, onSelect, on
     const rect = layer.current?.getBoundingClientRect()
     if (!rect) return
     const el = e.currentTarget
+    const div = root.current
+    if (!div) return
     el.setPointerCapture(e.pointerId)
     const start = { cx: e.clientX, cy: e.clientY, x: box.x, y: box.y, w: box.w }
     let g = { x: box.x, y: box.y, w: box.w }
@@ -94,13 +95,16 @@ export function TextItem({ box, active, selected, autoFocus, layer, onSelect, on
       g = mode === 'move'
         ? { ...g, x: clamp(start.x + dx, 0, 1 - start.w), y: clamp(start.y + dy, 0, 0.98) }
         : { ...g, w: clamp(start.w + dx, 0.08, 1 - start.x) }
-      setGeo(g)
+      // Durante il trascinamento si sposta direttamente l'elemento: niente render di React a ogni movimento.
+      div.style.left = `${g.x * 100}%`
+      div.style.top = `${g.y * 100}%`
+      div.style.width = `${g.w * 100}%`
     }
     const up = () => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
       el.removeEventListener('pointercancel', up)
-      setGeo(null)
+      // Niente ritorno alla posizione vecchia: l'elemento resta dov'è finché il database non conferma la nuova.
       onSave({ ...latest.current.box, text: latest.current.draft, x: r4(g.x), y: r4(g.y), w: r4(g.w) })
       latest.current.dirty = false
     }
@@ -109,9 +113,9 @@ export function TextItem({ box, active, selected, autoFocus, layer, onSelect, on
     el.addEventListener('pointercancel', up)
   }
 
-  const { x, y, w } = geo ?? box
+  const { x, y, w } = box
   return (
-    <div className={`ink-tb${selected && active ? ' sel' : ''}`} style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%` }}>
+    <div ref={root} className={`ink-tb${selected && active ? ' sel' : ''}`} style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%` }}>
       <textarea
         ref={area}
         className="ink-tb-text"

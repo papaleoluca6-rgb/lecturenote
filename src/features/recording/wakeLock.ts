@@ -27,7 +27,10 @@ export class ScreenWakeLock {
   private async request(): Promise<void> {
     if (!('wakeLock' in navigator) || this.active) return
     try {
-      this.lock = await navigator.wakeLock.request('screen')
+      const lock = await navigator.wakeLock.request('screen')
+      // Registrazione fermata mentre la richiesta era in corso: il lock va lasciato subito, o lo schermo resta acceso.
+      if (!this.wanted) return void lock.release().catch(() => {})
+      this.lock = lock
     } catch {
       // Non supportato o rifiutato (es. risparmio energetico): la registrazione continua comunque.
       this.lock = null

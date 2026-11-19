@@ -27,29 +27,30 @@ export async function addStroke(lessonId: Id, target: InkTarget, stroke: Stroke 
   })
 }
 
-/** Toglie i tratti indicati (gomma). */
-export async function removeStrokes(pageId: Id, drop: Set<number>): Promise<void> {
-  await db.transaction('rw', db.ink, async () => {
-    const page = await db.ink.get(pageId)
-    if (page) await db.ink.update(pageId, { strokes: page.strokes.filter((_, i) => !drop.has(i)) })
-  })
-}
+/** Identità di un tratto anche dopo il passaggio dal database (che ne salva una copia). */
+export const strokeKey = (s: Stroke) => `${s.ts}|${s.points.length}|${s.points[0]?.join(',')}`
 
-/** Annulla l'ultimo tratto della pagina e lo restituisce (per «Ripeti»). */
-export async function undoLast(pageId: Id): Promise<Stroke | undefined> {
+/**
+ * Toglie i tratti indicati (gomma), riconosciuti dal contenuto e non dalla posizione:
+ * se nel frattempo la pagina è cambiata (un tratto appena salvato), non si cancella il tratto sbagliato.
+ */
+export async function removeStrokes(pageId: Id, drop: Set<string>): Promise<Stroke[]> {
   return db.transaction('rw', db.ink, async () => {
     const page = await db.ink.get(pageId)
-    if (!page?.strokes.length) return undefined
-    await db.ink.update(pageId, { strokes: page.strokes.slice(0, -1) })
-    return page.strokes.at(-1)
+    if (!page) return []
+    const removed = page.strokes.filter((s) => drop.has(strokeKey(s)))
+    if (removed.length) await db.ink.update(pageId, { strokes: page.strokes.filter((s) => !drop.has(strokeKey(s))) })
+    return removed
   })
 }
 
-/** Rimette un tratto tolto con «Annulla». */
-export async function redoStroke(pageId: Id, stroke: Stroke): Promise<void> {
+/** Rimette dei tratti sulla pagina («Annulla» della gomma, «Ripeti» di un tratto), senza doppioni. */
+export async function restoreStrokes(pageId: Id, strokes: Stroke[]): Promise<void> {
   await db.transaction('rw', db.ink, async () => {
     const page = await db.ink.get(pageId)
-    if (page) await db.ink.update(pageId, { strokes: [...page.strokes, stroke] })
+    if (!page) return
+    const have = new Set(page.strokes.map(strokeKey))
+    await db.ink.update(pageId, { strokes: [...page.strokes, ...strokes.filter((s) => !have.has(strokeKey(s)))] })
   })
 }
 
@@ -97,5 +98,5 @@ export async function addBlankPage(lessonId: Id): Promise<Id> {
 export async function deletePage(pageId: Id): Promise<void> {
   await db.ink.delete(pageId)
   const t = getTool()
-  setTool({ lastPageId: t.lastPageId === pageId ? undefined : t.lastPageId, redo: t.redo.filter((r) => r.pageId !== pageId) })
+  setTool({ undo: t.undo.filter((o) => o.pageId !== pageId), redo: t.redo.filter((o) => o.pageId !== pageId) })
 }

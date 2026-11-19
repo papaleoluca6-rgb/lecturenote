@@ -3,12 +3,14 @@ import { db, type Lesson } from '../../db/schema'
 import { aiLabel } from '../../lib/ai'
 import { Icon } from '../../lib/Icon'
 import { summarize, type AiChoice } from './ai'
+import { textCutAt } from './events'
 
 /** Riassunto della lezione: si scrive a mano, oppure lo prepara l'AI facoltativa (poi resta modificabile). */
 export function SummaryCard({ lesson, ai, source }: { lesson: Lesson; ai: AiChoice | null; source: () => string }) {
   const [draft, setDraft] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [cut, setCut] = useState<string | null>(null)
   const value = draft ?? lesson.aiSummary ?? ''
 
   const save = (text: string) => db.lessons.update(lesson.id, { aiSummary: text, updatedAt: Date.now() })
@@ -23,6 +25,7 @@ export function SummaryCard({ lesson, ai, source }: { lesson: Lesson; ai: AiChoi
       const out = await summarize(ai, text)
       await save(out)
       setDraft(undefined)
+      setCut(textCutAt(text))
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -48,6 +51,7 @@ export function SummaryCard({ lesson, ai, source }: { lesson: Lesson; ai: AiChoi
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => { if (draft !== undefined && draft !== (lesson.aiSummary ?? '')) void save(draft).then(() => setDraft(undefined)) }}
       />
+      {cut && <p className="ui-muted">Testo troppo lungo: l'AI ha letto fino a {cut}.</p>}
       {error && <p className="ui-error" role="alert">{error}</p>}
     </section>
   )
