@@ -41,6 +41,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // + risorse di pdf.js in public/pdfjs (mappe CJK, font, wasm) per importare PDF offline
         globPatterns: ['**/*.{js,css,html,svg,png,bcmap,pfb,ttf,wasm,icc}'],
+        // Motori offline (sherpa-onnx, Bergamot): pesanti, li scarica e li conserva solo chi li usa (translation/offline/models.ts).
+        globIgnores: ['offline/**'],
       },
     }),
   ],

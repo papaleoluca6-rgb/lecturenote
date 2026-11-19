@@ -1,0 +1,8 @@
+.off-models { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.off-model { flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 14px; white-space: normal; text-align: left; }
+.off-model[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.off-warn { color: var(--warn); }
+.off-partial { padding: 10px 12px; border-radius: var(--r-sm); background: var(--s2); color: var(--t2); }
+.off-phrases { list-style: none; display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
+.off-phrases li { display: grid; gap: 2px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--s2); }
+.off-it { font-weight: 600; }

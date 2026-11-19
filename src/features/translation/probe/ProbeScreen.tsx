@@ -3,6 +3,7 @@ import { DEFAULT_CONFIG, loadConfig, type ProbeConfig } from './config'
 import { EMPTY_LOG, loadLog, saveLog, type ProbeLog } from './log'
 import { KeysPanel } from './KeysPanel'
 import { LivePanel } from './LivePanel'
+import { OfflinePanel } from '../offline/OfflinePanel'
 import { ResultsPanel } from './ResultsPanel'
 import { webSpeechAvailable } from './webSpeech'
 import './probe.css'
@@ -38,6 +39,7 @@ export function ProbeScreen({ onClose }: { onClose: () => void }) {
         </div>
         {!webSpeechAvailable() && <p className="pr-res ko">Questo browser non ha Web Speech API: usa Chrome.</p>}
       </section>
+      <OfflinePanel />
       <KeysPanel cfg={cfg} vpn={vpn} onCfg={setCfg} onResult={(r) => update((l) => ({ ...l, conn: [...l.conn, r] }))} />
       <LivePanel
         cfg={cfg}
