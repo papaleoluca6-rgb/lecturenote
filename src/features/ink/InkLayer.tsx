@@ -4,6 +4,7 @@ import type { Id, Sec, Stroke } from '../../db/schema'
 import { findPage, type InkTarget } from './data'
 import { VB_W, strokePath } from './freehand'
 import { textLines } from './snap'
+import { TextLayer } from './TextLayer'
 import { useInkInput } from './useInkInput'
 import './ink.css'
 
@@ -27,7 +28,7 @@ const Saved = memo(function Saved({ strokes, vbH, hidden }: { strokes: Stroke[];
   return <g>{strokes.map((s, i) => (hidden.has(i) ? null : <StrokePath key={i} s={s} vbH={vbH} />))}</g>
 })
 
-/** Livello trasparente di scrittura a mano, sovrapposto esattamente alla pagina (anche quando la slide è ingrandita). */
+/** Livello trasparente di scrittura a mano (e caselle di testo), sovrapposto esattamente alla pagina (anche quando la slide è ingrandita). */
 export function InkLayer({ lessonId, target, width, height, now, words }: Props) {
   const slideId = 'slideId' in target ? target.slideId : undefined
   const pageId = 'pageId' in target ? target.pageId : undefined
@@ -41,11 +42,14 @@ export function InkLayer({ lessonId, target, width, height, now, words }: Props)
   const strokes = useMemo(() => page?.strokes ?? [], [page])
 
   return (
+    <>
     <svg className="ink-layer" viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" {...ink.handlers}>
       <Saved strokes={strokes} vbH={vbH} hidden={ink.hidden} />
       {ink.pending.map((s, i) => <StrokePath key={`p${i}`} s={s} vbH={vbH} />)}
       <path ref={live} className="ink-live" />
       <circle ref={cursor} className="ink-cursor" style={{ display: 'none' }} />
     </svg>
+    <TextLayer lessonId={lessonId} target={target} page={page} now={now} />
+    </>
   )
 }

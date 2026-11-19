@@ -1,7 +1,7 @@
 import { Icon, type IconName } from '../../lib/Icon'
 import { redoStroke, undoLast } from './data'
 import { HIGHLIGHTER_SIZE, SIZES } from './freehand'
-import { getTool, setTool, useInkTool, type InkTool } from './toolStore'
+import { TEXT_SIZES, getTool, setTool, useInkTool, type InkTool } from './toolStore'
 import './ink.css'
 
 const PEN_COLORS = ['--ink-black', '--ink-blue', '--ink-red', '--ink-green', '--ink-purple', '--ink-orange']
@@ -21,6 +21,7 @@ const COLOR_NAME: Record<string, string> = {
 const TOOLS: { id: InkTool; icon: IconName; label: string; title: string }[] = [
   { id: 'pen', icon: 'pen', label: 'Penna', title: 'Penna' },
   { id: 'highlighter', icon: 'highlighter', label: 'Evidenziatore', title: 'Evidenziatore' },
+  { id: 'text', icon: 'text', label: 'Testo', title: 'Testo: tocca la pagina per aggiungere una casella di testo' },
   { id: 'eraser', icon: 'eraser', label: 'Gomma', title: 'Gomma (cancella tratti interi). Con la penna, tieni premuto il tasto della S Pen per cancellare al volo' },
 ]
 
@@ -29,7 +30,7 @@ let penSize: number = SIZES.medio
 
 function pickTool(tool: InkTool) {
   const t = getTool()
-  if (tool === 'pen') setTool({ tool, color: t.penColor, size: penSize })
+  if (tool === 'pen' || tool === 'text') setTool({ tool, color: t.penColor, size: penSize })
   else if (tool === 'highlighter') setTool({ tool, color: t.hlColor, size: HIGHLIGHTER_SIZE })
   else setTool({ tool })
 }
@@ -57,7 +58,7 @@ async function redo() {
 /** Strumenti della penna, condivisi da slide e pagine bianche: colonna a sinistra in orizzontale, riga in verticale. */
 export function InkToolbar({ focus, onFocus }: { focus: boolean; onFocus: () => void }) {
   const t = useInkTool()
-  const colors = t.tool === 'highlighter' ? HL_COLORS : t.tool === 'pen' ? PEN_COLORS : []
+  const colors = t.tool === 'highlighter' ? HL_COLORS : t.tool === 'pen' || t.tool === 'text' ? PEN_COLORS : []
   const fingerLabel = t.fingerDraws ? 'Il dito scrive' : 'Il dito sfoglia'
 
   return (
@@ -101,6 +102,14 @@ export function InkToolbar({ focus, onFocus }: { focus: boolean; onFocus: () => 
             }}
           >
             <span className="ink-dot" style={{ width: size * 1.6 + 2, height: size * 1.6 + 2 }} />
+          </button>
+        ))}
+
+      {t.tool === 'text' && <span className="ink-sep" aria-hidden />}
+      {t.tool === 'text' &&
+        Object.entries(TEXT_SIZES).map(([name, size]) => (
+          <button key={name} className="ui-btn icon-only ink-btn" aria-pressed={t.textSize === size} aria-label={`Testo ${name}`} title={`Testo ${name}`} onClick={() => setTool({ textSize: size })}>
+            <span className="ink-aa" style={{ fontSize: size * 600 }}>A</span>
           </button>
         ))}
 

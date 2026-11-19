@@ -11,6 +11,7 @@ import { ReviewPanel } from '../features/study/ReviewPanel'
 import { CaptionsPanel } from '../features/translation/live/CaptionsPanel'
 import { Icon, type IconName } from '../lib/Icon'
 import { useLessonAudio } from '../lib/useLessonAudio'
+import { useLessonView } from '../lib/lessonView'
 
 type Tab = 'slides' | 'notebook' | 'notes' | 'captions' | 'review'
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
@@ -33,7 +34,9 @@ function fullscreen(on: boolean) {
 
 /** Pannelli della lezione sotto il registratore. Le feature si compongono qui (non si importano tra loro). */
 export function LessonPanels({ lessonId, clock }: { lessonId: Id; clock: LessonClock }) {
-  const [tab, setTab] = useState<Tab>('slides')
+  /** La scheda resta quella di prima anche uscendo dalla lezione o andando nelle impostazioni. */
+  const [saved, setTab] = useLessonView<Tab>(lessonId, 'tab')
+  const tab: Tab = saved && TABS.some((t) => t.id === saved) ? saved : 'slides'
   /** Modalità foglio: nasconde titolo e schede, la pagina prende tutto lo spazio. */
   const [focus, setFocus] = useState(false)
   /** Un solo lettore per la lezione: lo usano il ripasso e le slide, e cambiando scheda l'audio continua. */

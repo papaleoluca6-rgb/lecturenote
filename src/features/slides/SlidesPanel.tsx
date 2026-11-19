@@ -11,6 +11,7 @@ import type { LessonAudio } from '../../lib/lessonAudio'
 import { SlideAudio } from './SlideAudio'
 import { useAudioSync } from './useAudioSync'
 import { useFullscreen } from './useFullscreen'
+import { useLessonView } from '../../lib/lessonView'
 
 interface Props {
   lessonId: Id
@@ -28,7 +29,8 @@ interface Props {
 export function SlidesPanel({ lessonId, recording, now, overlay, player }: Props) {
   const slides = useLiveQuery(() => listSlides(lessonId), [lessonId])
   const shown = useLiveQuery(() => firstShown(lessonId), [lessonId]) ?? new Map<Id, Sec>()
-  const [currentId, setCurrentId] = useState<Id>()
+  // Ultima slide guardata: rientrando nella lezione si riparte da lì.
+  const [currentId, setCurrentId] = useLessonView<Id>(lessonId, 'slide')
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [thumbs, setThumbs] = useState(false)

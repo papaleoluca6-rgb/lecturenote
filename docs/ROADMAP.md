@@ -16,6 +16,13 @@ Una riga = una sessione di lavoro. Stato: ⬜ da fare · 🟨 in corso · ✅ fa
 | 9 | Impostazioni: chiavi API, scelta provider | `settings/` | basso | ✅ |
 | 10 | Backup: export/import di tutto, import dei vecchi JSON di `legacy/` | `backup/` | medio | ✅ |
 | 11 | PWA: icone PNG, installazione su Android, test offline, pubblicazione su GitHub Pages | — | basso | 🟨 |
+| 12 | Caselle di testo sopra slide e pagine; ritorno al punto lasciato (scheda, slide, pagina, lezione aperta) | `ink/`, `lib/lessonView.ts` | medio | ✅ |
+
+## Caselle di testo e ritorno al punto lasciato (sessione 12, ✅)
+
+- **Caselle di testo** (`ink/TextLayer.tsx`, `ink/TextItem.tsx`): strumento «Testo» (T) nella barra della penna, con colore e tre grandezze. Un tocco su un punto vuoto della slide o della pagina crea una casella; con la maniglia si sposta, dal bordo destro si allarga, il cestino la elimina, svuotata sparisce da sola. Con gli altri strumenti le caselle restano visibili e la penna ci scrive sopra. Salvate in `InkPage.texts` (campo non indicizzato, nessuna nuova versione dello schema), con `ts` sulla timeline.
+- **Ritorno al punto lasciato** (`lib/lessonView.ts`, localStorage del tablet): per ogni lezione si ricordano scheda, slide e pagina bianca; si ricorda anche la lezione aperta, così se Android ricarica l'app si riapre lì. Le impostazioni aperte dalla lezione la lasciano montata (nascosta): tornando è identica.
+- Verificato sul PC (browser 960×600, mouse); da provare sul tablet: tocco col dito e con la S Pen per creare e spostare le caselle, tastiera di Android che si apre sulla casella nuova.
 
 ## Traduttore in tempo reale (cinese→italiano, inglese→italiano)
 

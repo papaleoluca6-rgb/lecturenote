@@ -2,13 +2,18 @@ import { useSyncExternalStore } from 'react'
 import type { Id, Stroke } from '../../db/schema'
 import { SIZES } from './freehand'
 
-export type InkTool = 'pen' | 'highlighter' | 'eraser'
+/** Grandezze del testo delle caselle, in proporzione alla larghezza della pagina. */
+export const TEXT_SIZES = { piccolo: 0.018, medio: 0.026, grande: 0.04 } as const
+
+export type InkTool = 'pen' | 'highlighter' | 'eraser' | 'text'
 
 export interface ToolState {
   tool: InkTool
   /** Nome del token di colore in global.css (es. "--ink-blue"): il valore esatto viene salvato nel tratto. */
   color: string
   size: number
+  /** Grandezza del testo delle nuove caselle (proporzione della larghezza della pagina). */
+  textSize: number
   /** Ultimo colore usato con la penna e con l'evidenziatore, per tornarci cambiando strumento. */
   penColor: string
   hlColor: string
@@ -22,7 +27,7 @@ export interface ToolState {
   penSeen: boolean
 }
 
-let state: ToolState = { tool: 'pen', color: '--ink-black', size: SIZES.medio, penColor: '--ink-black', hlColor: '--ink-hl-yellow', fingerDraws: false, redo: [], penSeen: false }
+let state: ToolState = { tool: 'pen', color: '--ink-black', size: SIZES.medio, textSize: TEXT_SIZES.medio, penColor: '--ink-black', hlColor: '--ink-hl-yellow', fingerDraws: false, redo: [], penSeen: false }
 const subs = new Set<() => void>()
 
 export function setTool(patch: Partial<ToolState>): void {

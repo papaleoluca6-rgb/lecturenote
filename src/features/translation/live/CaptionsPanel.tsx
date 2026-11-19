@@ -56,7 +56,7 @@ export function CaptionsPanel({ lessonId, recording, running, now, stream }: Pro
             Parlato: {STT_LABEL[live.setup.stt]} · Traduzione: {live.setup.translator === 'chrome' ? 'Chrome offline' : live.setup.translator}
           </span>
         )}
-        {/* Le impostazioni sono un'altra schermata: aprirle ora fermerebbe la registrazione. */}
+        {/* Durante la registrazione meglio non cambiare il motore della traduzione. */}
         {!recording && <a className="ui-btn ghost sm" href="#impostazioni"><Icon name="settings" size={16} /> Cambia</a>}
       </header>
       {(live.error || notice) && <p className={live.error ? 'ui-error' : 'ui-muted'} role="status">{live.error || notice}</p>}

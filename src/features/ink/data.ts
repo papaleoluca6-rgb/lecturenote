@@ -1,5 +1,5 @@
 import { getTool, setTool } from './toolStore'
-import { db, newId, type Id, type InkPage, type Paper, type Stroke } from '../../db/schema'
+import { db, newId, type Id, type InkPage, type Paper, type Stroke, type TextBox } from '../../db/schema'
 
 /** Dove si scrive: sopra una slide, oppure su una pagina bianca già esistente. */
 export type InkTarget = { slideId: Id } | { pageId: Id }
@@ -50,6 +50,28 @@ export async function redoStroke(pageId: Id, stroke: Stroke): Promise<void> {
   await db.transaction('rw', db.ink, async () => {
     const page = await db.ink.get(pageId)
     if (page) await db.ink.update(pageId, { strokes: [...page.strokes, stroke] })
+  })
+}
+
+/** Aggiunge o aggiorna una casella di testo; la pagina della slide viene creata alla prima casella. */
+export async function putText(lessonId: Id, target: InkTarget, box: TextBox): Promise<void> {
+  await db.transaction('rw', db.ink, async () => {
+    const page = await findPage(target)
+    if (!page) {
+      await db.ink.add({ id: newId(), lessonId, slideId: 'slideId' in target ? target.slideId : undefined, order: 0, strokes: [], texts: [box] })
+      return
+    }
+    const texts = page.texts ?? []
+    const i = texts.findIndex((t) => t.id === box.id)
+    await db.ink.update(page.id, { texts: i < 0 ? [...texts, box] : texts.map((t, j) => (j === i ? box : t)) })
+  })
+}
+
+/** Elimina una casella di testo. */
+export async function removeText(target: InkTarget, id: Id): Promise<void> {
+  await db.transaction('rw', db.ink, async () => {
+    const page = await findPage(target)
+    if (page?.texts) await db.ink.update(page.id, { texts: page.texts.filter((t) => t.id !== id) })
   })
 }
 

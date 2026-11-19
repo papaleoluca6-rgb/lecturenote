@@ -5,6 +5,7 @@ import { BLANK_H, BLANK_W, addBlankPage, blankPages, deletePage, setPaper } from
 import { InkLayer } from './InkLayer'
 import './ink.css'
 import { Icon } from '../../lib/Icon'
+import { useLessonView } from '../../lib/lessonView'
 
 const PAPERS: PaperKind[] = ['blank', 'lines', 'grid']
 const PAPER_NAME: Record<PaperKind, string> = { blank: 'bianco', lines: 'a righe', grid: 'a quadretti' }
@@ -46,7 +47,7 @@ function Paper({ lessonId, page, now }: { lessonId: Id; page: InkPage; now: () =
 /** Pagine bianche per scrivere a mano, una dopo l'altra. */
 export function NotebookPanel({ lessonId, now }: { lessonId: Id; now: () => Sec }) {
   const pages = useLiveQuery(() => blankPages(lessonId), [lessonId])
-  const [currentId, setCurrentId] = useState<Id>()
+  const [currentId, setCurrentId] = useLessonView<Id>(lessonId, 'page')
   const list = pages ?? []
   const found = list.findIndex((p) => p.id === currentId)
   const index = found >= 0 ? found : list.length - 1

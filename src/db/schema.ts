@@ -87,6 +87,19 @@ export interface Stroke {
   ts: Sec
 }
 
+/** Casella di testo scritta sopra una pagina o una slide. Posizione e larghezza normalizzate 0..1 sulla pagina. */
+export interface TextBox {
+  id: Id
+  x: number
+  y: number
+  w: number
+  text: string
+  color: string
+  /** Altezza del carattere in proporzione alla larghezza della pagina (es. 0.026). */
+  size: number
+  ts: Sec
+}
+
 /** Tipo di foglio delle pagine bianche. */
 export type Paper = 'blank' | 'lines' | 'grid'
 
@@ -99,6 +112,8 @@ export interface InkPage {
   strokes: Stroke[]
   /** Solo pagine bianche: bianco (default), a righe o a quadretti. Campo non indicizzato: nessuna nuova versione. */
   paper?: Paper
+  /** Caselle di testo sopra la pagina. Campo non indicizzato: nessuna nuova versione. */
+  texts?: TextBox[]
 }
 
 export interface TranscriptSegment {
