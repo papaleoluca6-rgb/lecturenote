@@ -1,4 +1,5 @@
 import { db } from '../../../db/schema'
+import { GEMINI_MODEL } from '../../../lib/ai'
 import { CHAT_PROVIDERS, type ChatProviderId } from '../../../lib/aiProviders'
 
 // Configurazione della prova tecnica. Regola: tutto gratuito e funzionante senza chiavi.
@@ -26,7 +27,7 @@ export interface ProbeConfig {
 
 export const DEFAULT_CONFIG: ProbeConfig = {
   keys: { gemini: '', qwen: '', deepseek: '', kimi: '' },
-  geminiModel: 'gemini-2.5-flash-lite',
+  geminiModel: GEMINI_MODEL,
 }
 
 const keyName = (id: ProviderId) => `apiKey.${id}`

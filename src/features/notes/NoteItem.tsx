@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { db, type Note } from '../../db/schema'
 import { fmtSecs } from '../../lib/time'
 import { useBlobUrl } from '../../lib/useBlobUrl'
@@ -10,12 +10,27 @@ export function NoteItem({ note, onOpenPhoto }: { note: Note; onOpenPhoto: (url:
   const [draft, setDraft] = useState<string>()
   const value = draft ?? note.text
 
-  const save = () => {
+  /** Scrive la modifica nel database; `done` chiude anche la modifica (al blur). */
+  const write = (done: boolean) => {
     // Una nota di solo testo svuotata torna com'era (per toglierla c'è il cestino).
     const emptied = !note.photo && !draft?.trim()
     if (draft !== undefined && draft !== note.text && !emptied) void db.notes.update(note.id, { text: draft })
-    setDraft(undefined)
+    if (done) setDraft(undefined)
   }
+  const save = () => write(true)
+  const writeRef = useRef(write)
+  useEffect(() => { writeRef.current = write })
+  // Scheda mandata in background (Android può chiuderla senza avvisare): si salva senza chiudere la modifica.
+  useEffect(() => {
+    const onPageHide = () => writeRef.current(false)
+    const onHide = () => document.visibilityState === 'hidden' && onPageHide()
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [])
   const remove = () => {
     if (window.confirm('Eliminare questa nota?')) void db.notes.delete(note.id)
   }

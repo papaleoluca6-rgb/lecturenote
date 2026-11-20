@@ -52,7 +52,7 @@ export async function translatorAvailability(from: 'zh' | 'en'): Promise<Availab
 /** Crea (e se serve scarica) il traduttore. Il primo scaricamento va avviato da un tocco dell'utente. */
 export function getTranslator(from: 'zh' | 'en', onProgress?: (pct: number) => void): Promise<TranslatorInst> {
   const T = g.Translator
-  if (!T) return Promise.reject(new Error('Translator API assente: serve Chrome recente'))
+  if (!T) return Promise.reject(new Error("Traduzione offline di Chrome non disponibile su questo dispositivo (su Android non c'è): scegli un'altra traduzione"))
   let p = translators.get(from)
   if (!p) {
     p = T.create({

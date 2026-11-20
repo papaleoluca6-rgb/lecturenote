@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useLayoutEffect, useRef, useState, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent, type RefObject } from 'react'
-import type { Id, InkPage, Sec, Stroke } from '../../db/schema'
-import { addStroke, removeStrokes, strokeKey, type InkTarget } from './data'
-import { ERASER_R, hitsStroke, strokePath } from './freehand'
+import { newId, type Id, type InkPage, type Sec, type Stroke } from '../../db/schema'
+import { addStroke, removeStrokes, type InkTarget } from './data'
+import { ERASER_R, hitsStroke, nearBox, strokeBox, strokePath } from './freehand'
+import { strokeKey } from './strokeKey'
 import { hideCursor, showCursor } from './inkCursor'
 import { snapHighlight, type textLines } from './snap'
 import { getTool, inkSaved, pushOp, setTool, tokenColor } from './toolStore'
@@ -35,6 +36,8 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
   // Tratti ormai nel database: non vanno più disegnati come «pending». Scrivendo veloce, il tratto successivo
   // può essere ancora in salvataggio: resta visibile finché non arriva anche lui.
   const saved = useMemo(() => new Set((page?.strokes ?? []).map(strokeKey)), [page])
+  /** Riquadro di ogni tratto salvato (stesso ordine di page.strokes): la gomma salta subito quelli lontani. */
+  const boxes = useMemo(() => (page?.strokes ?? []).map(strokeBox), [page])
   const shownPending = useMemo(() => pending.filter((s) => !saved.has(strokeKey(s))), [pending, saved])
   // Appena un tratto arriva nel database esce dai «pending»: se poi «Annulla» o la gomma lo tolgono,
   // non deve ricomparire da qui (prima restava lì fino al tratto successivo).
@@ -105,9 +108,11 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
       lastErase.current = [x, y]
       return [a, [x, y]]
     })
-    const add = page.strokes.flatMap((s) => {
+    const add = page.strokes.flatMap((s, i) => {
       const k = strokeKey(s)
-      return !erased.current.has(k) && segs.some(([a, b]) => hitsStroke(s, a, b, vbH, ERASER_R)) ? [k] : []
+      // Prima il riquadro del tratto (economico), poi i singoli punti solo per i tratti vicini.
+      const near = (a: [number, number], b: [number, number]) => nearBox(boxes[i], s, a, b, vbH, ERASER_R)
+      return !erased.current.has(k) && segs.some(([a, b]) => near(a, b) && hitsStroke(s, a, b, vbH, ERASER_R)) ? [k] : []
     })
     if (!add.length) return
     add.forEach((k) => erased.current.add(k))
@@ -186,11 +191,12 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
     stroke.current = null
     if (s) {
       // Evidenziatore: la traccia a mano diventa una fascia esatta sulle parole (o almeno dritta).
-      const add = (s.tool === 'highlighter' && snapHighlight(s, lines, vbH)) || [s]
+      // Ogni tratto ha un id suo: due fasce uguali (stessa parola evidenziata due volte) restano distinte.
+      const add: Stroke[] = ((s.tool === 'highlighter' && snapHighlight(s, lines, vbH)) || [s]).map((x) => ({ ...x, id: newId() }))
       setPending((p) => [...p, ...add])
       addStroke(lessonId, target, add)
         .then((pageId) => {
-          pushOp({ pageId, kind: 'add', strokes: add })
+          pushOp({ lessonId, pageId, kind: 'add', strokes: add })
           inkSaved()
         })
         .catch((err: unknown) => {
@@ -203,7 +209,7 @@ export function useInkInput(lessonId: Id, target: InkTarget, page: InkPage | und
       const keys = erased.current
       removeStrokes(pageId, keys)
         .then((removed) => {
-          if (removed.length) pushOp({ pageId, kind: 'erase', strokes: removed })
+          if (removed.length) pushOp({ lessonId, pageId, kind: 'erase', strokes: removed })
           inkSaved()
         })
         .catch((err: unknown) => {

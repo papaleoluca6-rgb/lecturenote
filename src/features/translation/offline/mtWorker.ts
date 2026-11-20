@@ -40,9 +40,9 @@ interface PairBufs {
 interface Init {
   type: 'init'
   glue: string
-  wasm: ArrayBuffer
-  zhen: PairBufs
-  enit: PairBufs
+  wasm: ArrayBuffer | null
+  zhen: PairBufs | null
+  enit: PairBufs | null
 }
 
 let b: Bergamot
@@ -107,8 +107,13 @@ function init(m: Init) {
       void Promise.resolve().then(() => {
         try {
           service = new b.BlockingService({ cacheSize: 0 })
-          models.zhen = load('zh', 'en', m.zhen)
-          models.enit = load('en', 'it', m.enit)
+          models.zhen = load('zh', 'en', m.zhen!)
+          models.enit = load('en', 'it', m.enit!)
+          // I modelli sono copiati nella memoria del motore: i buffer ricevuti si lasciano al garbage collector.
+          m.zhen = null
+          m.enit = null
+          m.wasm = null
+          ;(b as unknown as Record<string, unknown>).wasmBinary = null
           w.postMessage({ type: 'ready', ms: Math.round(performance.now() - t0), heapMB: Math.round(b.HEAPU8.length / 1048576) })
         } catch (err) {
           fail(err)

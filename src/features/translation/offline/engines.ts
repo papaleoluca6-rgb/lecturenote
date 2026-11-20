@@ -29,7 +29,12 @@ function boot(worker: Worker, init: unknown, transfer: Transferable[], onMsg: (m
       else if (m.type === 'error') reject(new Error(m.msg))
       onMsg(m)
     }
-    worker.onerror = (e) => reject(new Error(e.message || 'Errore nel worker'))
+    // Anche dopo l'avvio: un errore non gestito nel worker arriva come messaggio di errore.
+    worker.onerror = (e) => {
+      const msg = e.message || 'Errore nel worker'
+      reject(new Error(msg))
+      onMsg({ type: 'error', msg })
+    }
     worker.postMessage(init, transfer)
   })
 }
@@ -90,7 +95,7 @@ export interface Translation {
 /** Traduzione Bergamot: cinese→inglese→italiano, inglese→italiano. Le richieste si mettono in coda nel worker. */
 export class OfflineMt {
   private readonly worker = new Worker(new URL('./mtWorker.ts', import.meta.url))
-  private readonly waiting = new Map<number, (t: Translation) => void>()
+  private readonly waiting = new Map<number, { resolve: (t: Translation) => void; reject: (e: Error) => void }>()
   private next = 0
   private url = ''
 
@@ -103,22 +108,32 @@ export class OfflineMt {
     const init = { type: 'init', glue: this.url, wasm, zhen, enit }
     return boot(this.worker, init, [wasm, zhen.model, zhen.lex, zhen.vocab, enit.model, enit.lex, enit.vocab], (m) => {
       if (m.type === 'translated') {
-        this.waiting.get(Number(m.id))?.(m as unknown as Translation)
+        this.waiting.get(Number(m.id))?.resolve(m as unknown as Translation)
         this.waiting.delete(Number(m.id))
-      } else if (m.type === 'error') onError(String(m.msg))
+      } else if (m.type === 'error') {
+        this.rejectAll(String(m.msg))
+        onError(String(m.msg))
+      }
     })
+  }
+
+  /** Dopo un errore del motore le traduzioni in coda non arriveranno più. */
+  private rejectAll(msg: string) {
+    for (const w of this.waiting.values()) w.reject(new Error(msg))
+    this.waiting.clear()
   }
 
   translate(text: string, from: 'zh' | 'en'): Promise<Translation> {
     const id = this.next++
-    return new Promise((resolve) => {
-      this.waiting.set(id, resolve)
+    return new Promise((resolve, reject) => {
+      this.waiting.set(id, { resolve, reject })
       this.worker.postMessage({ type: 'translate', id, text, from })
     })
   }
 
   dispose(): void {
     this.worker.terminate()
+    this.rejectAll('Traduzione chiusa')
     if (this.url) URL.revokeObjectURL(this.url)
   }
 }

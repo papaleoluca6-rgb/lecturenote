@@ -1,3 +1,5 @@
+import { deviceSpeechAvailable } from '../../../db/settings'
+
 // Web Speech API (Chrome): usa i server Google, quindi in Cina serve la VPN.
 // Nota: non riceve lo stream, apre il microfono da sola → è proprio il conflitto da misurare su Android.
 
@@ -34,7 +36,10 @@ const ERR: Record<string, string> = {
   'audio-capture': 'microfono occupato o assente',
   aborted: 'interrotto',
   'language-not-supported': 'lingua non supportata',
+  'local-unsupported': 'riconoscimento sul dispositivo assente in questo Chrome: userebbe i server Google',
 }
+/** Errori dopo cui riprovare non serve: ci si ferma. */
+const FATAL = ['not-allowed', 'service-not-allowed', 'language-not-supported']
 export const wsErrorText = (code: string) => `${code} (${ERR[code] ?? 'errore'})`
 
 export interface WsHandlers {
@@ -49,8 +54,8 @@ export interface WsHandlers {
 /** Riconoscimento continuo che si riavvia da solo (Chrome Android si ferma dopo ogni pausa). */
 export class WebSpeechLive {
   private on = true
-  /** Errori di rete di fila: senza VPN il server Google non risponde e si riproverebbe ogni 0,3 s all'infinito. */
-  private netFails = 0
+  /** Errori di fila (rete senza VPN, microfono occupato, …): senza attesa si riproverebbe ogni 0,3 s all'infinito. */
+  private fails = 0
   private restartTimer = 0
   private sr: SR | null = null
   private firstAt = new Map<number, number>()
@@ -64,6 +69,8 @@ export class WebSpeechLive {
     this.h = h
     const C = ctor()
     if (!C) h.onError('non supportato da questo browser')
+    // Su Chrome vecchio processLocally si ignora in silenzio e l'audio va a Google: meglio dirlo e non partire.
+    else if (local && !deviceSpeechAvailable()) h.onError('local-unsupported')
     else this.open(C)
   }
 
@@ -75,7 +82,7 @@ export class WebSpeechLive {
     if (this.local) sr.processLocally = true
     sr.onstart = () => this.h.onState('in ascolto')
     sr.onresult = (e) => {
-      this.netFails = 0
+      this.fails = 0
       const now = performance.now()
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i]
@@ -88,16 +95,16 @@ export class WebSpeechLive {
     }
     sr.onerror = (e) => {
       this.h.onError(e.error)
-      if (e.error === 'network') this.netFails++
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') this.on = false
+      if (e.error !== 'no-speech' && e.error !== 'aborted') this.fails++
+      if (FATAL.includes(e.error)) this.on = false
     }
     sr.onend = () => {
       this.firstAt.clear()
       if (!this.on) return this.h.onState('fermo')
       this.h.onRestart()
-      // Dopo errori di rete si aspetta un po' di più (1, 2, 4, poi 8 s): microfono e batteria restano liberi,
-      // e quando la VPN torna si riparte entro pochi secondi.
-      const wait = this.netFails ? Math.min(8000, 1000 * 2 ** (this.netFails - 1)) : 300
+      // Dopo un errore si aspetta un po' di più (1, 2, 4, poi 8 s): microfono e batteria restano liberi,
+      // e quando la VPN o il microfono tornano si riparte entro pochi secondi.
+      const wait = this.fails ? Math.min(8000, 1000 * 2 ** (this.fails - 1)) : 300
       this.restartTimer = window.setTimeout(() => this.on && this.open(C), wait)
     }
     this.sr = sr
@@ -119,6 +126,7 @@ export function testWebSpeech(lang: string, local = false): Promise<QuickResult>
   return new Promise((resolve) => {
     const C = ctor()
     if (!C) return resolve({ ok: false, ms: 0, detail: 'Web Speech non disponibile in questo browser' })
+    if (local && !deviceSpeechAvailable()) return resolve({ ok: false, ms: 0, detail: wsErrorText('local-unsupported') })
     const t0 = performance.now()
     const sr = new C()
     sr.lang = lang

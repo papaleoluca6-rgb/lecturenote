@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Id, InkPage, Paper as PaperKind, Sec } from '../../db/schema'
 import { BLANK_H, BLANK_W, addBlankPage, blankPages, deletePage, setPaper } from './data'
 import { InkLayer } from './InkLayer'
+import { enterLesson } from './toolStore'
 import './ink.css'
 import { Icon } from '../../lib/Icon'
 import { useLessonView } from '../../lib/lessonView'
@@ -47,6 +48,8 @@ function Paper({ lessonId, page, now }: { lessonId: Id; page: InkPage; now: () =
 /** Pagine bianche per scrivere a mano, una dopo l'altra. */
 export function NotebookPanel({ lessonId, now }: { lessonId: Id; now: () => Sec }) {
   const pages = useLiveQuery(() => blankPages(lessonId), [lessonId])
+  // Aprendo un'altra lezione, «Annulla» e «Ripeti» non devono toccare i tratti di quella di prima.
+  useEffect(() => enterLesson(lessonId), [lessonId])
   const [currentId, setCurrentId] = useLessonView<Id>(lessonId, 'page')
   const list = pages ?? []
   const found = list.findIndex((p) => p.id === currentId)
@@ -55,7 +58,8 @@ export function NotebookPanel({ lessonId, now }: { lessonId: Id; now: () => Sec 
 
   const add = async () => setCurrentId(await addBlankPage(lessonId))
   const remove = async () => {
-    if (!page || (page.strokes.length && !confirm('Eliminare questa pagina e quello che c’è scritto?'))) return
+    const written = page && (page.strokes.length > 0 || page.texts?.some((t) => t.text.trim()))
+    if (!page || (written && !confirm('Eliminare questa pagina e quello che c’è scritto?'))) return
     await deletePage(page.id)
     setCurrentId(list[index - 1]?.id ?? list[index + 1]?.id)
   }

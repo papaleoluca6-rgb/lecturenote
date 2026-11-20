@@ -51,6 +51,21 @@ export function TextItem({ box, active, selected, autoFocus, layer, onSelect, on
     onSave({ ...l.box, text: l.draft })
   }
   useEffect(() => () => flush(), []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Scheda in background (Android può chiuderla senza avvisare): si salva subito, senza aspettare SAVE_MS.
+  const flushRef = useRef(flush)
+  useLayoutEffect(() => {
+    flushRef.current = flush
+  })
+  useEffect(() => {
+    const onPageHide = () => flushRef.current()
+    const onHide = () => document.visibilityState === 'hidden' && onPageHide()
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [])
 
   // Altezza che segue il testo (anche quando la pagina cambia grandezza).
   useLayoutEffect(() => {

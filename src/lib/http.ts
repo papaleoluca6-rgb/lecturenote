@@ -30,5 +30,10 @@ export async function postJson<T>(url: string, headers: Record<string, string>, 
     const hint = res.status === 401 || res.status === 403 ? ' (chiave errata o non autorizzata)' : ''
     throw new Error(`HTTP ${res.status}${hint}: ${msg}`)
   }
-  return JSON.parse(text) as T
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    // Es. pagina HTML di un proxy, della VPN o di una rete con accesso (wifi dell'università).
+    throw new Error(`Risposta non valida dal server (non è JSON: forse una pagina della rete o della VPN): ${text.slice(0, 80)}`)
+  }
 }

@@ -42,6 +42,14 @@ function audioDuration(blob: Blob): Promise<number> {
   })
 }
 
+interface LegacyAudio { blob: Blob; dur: number }
+
+/** Audio base64 → Blob con la sua durata (0 se non si riesce a misurarla). */
+async function readAudio(b64: string, mime?: string | null): Promise<LegacyAudio> {
+  const blob = await toBlob(b64, mime ?? 'audio/webm')
+  return { blob, dur: await audioDuration(blob) }
+}
+
 async function imageSize(blob: Blob): Promise<{ width: number; height: number }> {
   const bmp = await createImageBitmap(blob)
   const size = { width: bmp.width, height: bmp.height }
@@ -65,15 +73,24 @@ async function importOne(file: File): Promise<string | null> {
   if (await db.lessons.get(lessonId)) return null
   const date = Date.parse(s.date ?? '') || file.lastModified || Date.now()
 
+  // Nella vecchia app, continuando una lezione, l'audio nuovo parte dal punto in cui si era fermata (prev.duration)
+  // e arriva a s.duration; previousAudio è solo la sessione prima dell'ultima (quelle ancora prima sono perse)
+  // e finisce dove inizia l'audio corrente. Senza audio nuovo, i due sono lo stesso file.
+  const cur = s.audioB64 ? await readAudio(s.audioB64, s.audioMime) : null
+  const prev = s.previousAudioB64 && s.previousAudioB64 !== s.audioB64 ? await readAudio(s.previousAudioB64, s.previousAudioMime) : null
+  const total = s.duration ?? 0
+  const curDur = cur ? cur.dur || Math.max(0, total - (prev?.dur ?? 0)) : 0
+  let curStart = Math.max(0, total - curDur)
+  // Durata della lezione mancante o incoerente: i due audio uno dopo l'altro.
+  if (prev && !curStart) curStart = prev.dur
   const audio: AudioSegment[] = []
-  const parts = [[s.previousAudioB64, s.previousAudioMime], [s.audioB64, s.audioMime]] as const
-  for (const [b64, mime] of parts) {
-    if (!b64 || (b64 === s.previousAudioB64 && b64 === s.audioB64 && audio.length)) continue
-    const blob = await toBlob(b64, mime ?? 'audio/webm')
-    const startSec = audio.reduce((t, a) => t + a.durationSec, 0)
-    const durationSec = (await audioDuration(blob)) || Math.max(0, (s.duration ?? 0) - startSec)
-    audio.push({ id: newId(), lessonId, index: audio.length, startSec, durationSec, mime: blob.type, blob })
+  const add = (p: LegacyAudio, startSec: number, durationSec: number) =>
+    audio.push({ id: newId(), lessonId, index: audio.length, startSec, durationSec, mime: p.blob.type, blob: p.blob })
+  if (prev) {
+    const dur = Math.min(prev.dur || curStart, curStart)
+    add(prev, curStart - dur, dur)
   }
+  if (cur) add(cur, curStart, curDur)
 
   const slides: Slide[] = []
   /** Indice nella vecchia lezione → slide importata (le immagini rovinate mancano). */
@@ -101,7 +118,7 @@ async function importOne(file: File): Promise<string | null> {
     .filter((p) => p.text?.trim())
     .map((p) => ({ id: newId(), lessonId, ts: p.ts ?? 0, lang: detectLang(p.text), text: p.text.trim(), source: 'ai' }))
 
-  const duration = Math.max(s.duration ?? 0, audio.reduce((t, a) => t + a.durationSec, 0))
+  const duration = Math.max(total, ...audio.map((a) => a.startSec + a.durationSec))
   const courseName = (s.course ?? '').trim() || 'Lezioni importate'
   const children = lessonTables()
 

@@ -41,6 +41,10 @@ export class OfflineTest {
   private mt: OfflineMt | null = null
   private src: Source | null = null
   private s: TestState = INITIAL
+  /** Numero della prova in corso: Ferma o una nuova prova lo cambiano, e chi era in attesa (permesso, decodifica) non parte più. */
+  private run = 0
+  /** Numeri delle frasi: non ripartono a ogni prova, così una traduzione in ritardo non finisce sulla frase sbagliata. */
+  private nextPhrase = 0
   private readonly model: AsrModel
   private readonly onState: (s: TestState) => void
 
@@ -54,7 +58,12 @@ export class OfflineTest {
     this.onState(this.s)
   }
 
-  private fail = (msg: string) => this.set({ phase: 'error', message: msg })
+  private fail = (msg: string) => {
+    this.run++
+    this.src?.stop()
+    this.src = null
+    this.set({ phase: 'error', message: msg, partial: '' })
+  }
 
   /** Carica i due motori con i modelli già scaricati e misura tempi e memoria. */
   async load(): Promise<void> {
@@ -86,24 +95,45 @@ export class OfflineTest {
   }
 
   async mic(): Promise<void> {
-    this.set({ ...this.clean(), phase: 'running', message: 'Ascolto dal microfono…' })
-    this.src = await micSource(this.feed)
+    const run = this.begin('Ascolto dal microfono…')
+    try {
+      const src = await micSource(this.feed)
+      if (run === this.run) this.src = src
+      else src.stop()
+    } catch (e) {
+      if (run === this.run) this.fail(`Microfono non disponibile: ${(e as Error).message}`)
+    }
   }
 
   async file(f: File): Promise<void> {
-    this.set({ ...this.clean(), phase: 'running', message: `Leggo ${f.name}…` })
-    const samples = await decodeFile(f)
-    this.set({ message: `Faccio scorrere ${f.name} a velocità reale (${Math.round(samples.length / 16000)} s)…` })
-    this.src = fileSource(samples, this.feed, () => this.asr?.end())
+    const run = this.begin(`Leggo ${f.name}…`)
+    try {
+      const samples = await decodeFile(f)
+      if (run !== this.run) return
+      this.set({ message: `Faccio scorrere ${f.name} a velocità reale (${Math.round(samples.length / 16000)} s)…` })
+      this.src = fileSource(samples, this.feed, () => this.asr?.end())
+    } catch (e) {
+      if (run === this.run) this.fail(`File non letto: ${(e as Error).message}`)
+    }
+  }
+
+  /** Nuova prova: ferma quella di prima e restituisce il suo numero. */
+  private begin(message: string): number {
+    this.src?.stop()
+    this.src = null
+    this.set({ ...this.clean(), phase: 'running', message })
+    return ++this.run
   }
 
   stop(): void {
+    this.run++
     this.src?.stop()
     this.src = null
     this.asr?.end()
   }
 
   dispose(): void {
+    this.run++
     this.src?.stop()
     this.asr?.dispose()
     this.mt?.dispose()
@@ -118,14 +148,14 @@ export class OfflineTest {
     const text = raw.replace(/<unk>/g, ' ').replace(/\s+/g, ' ').trim()
     if (!text) return
     const lang = this.model.langs === 'zh+en' ? detectLang(text) : this.model.langs === 'en' ? 'en' : 'zh'
-    const p: TestPhrase = { id: this.s.phrases.length, at: this.s.doneSec, lang, text }
+    const p: TestPhrase = { id: this.nextPhrase++, at: this.s.doneSec, lang, text }
     this.set({ partial: '', phrases: [...this.s.phrases, p] })
-    void this.mt?.translate(text, lang).then((t) => {
+    this.mt?.translate(text, lang).then((t) => {
       this.set({
         mtHeapMB: t.heapMB,
         phrases: this.s.phrases.map((x) => (x.id === p.id ? { ...x, en: t.en, it: t.it, msEn: t.msEn, msIt: t.msIt } : x)),
       })
-    })
+    }, () => {}) // l'errore del motore arriva già da fail()
   }
 }
 

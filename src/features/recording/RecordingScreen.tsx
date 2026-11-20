@@ -42,12 +42,15 @@ interface Props {
   onClose: () => void
   /** Pannelli di altre feature composti da app/ (le feature non si importano tra loro). */
   panels?: (clock: LessonClock) => ReactNode
+  /** Avviso da mostrare all'apertura (es. registrazione interrotta perché l'app è stata chiusa). */
+  notice?: string
 }
 
-export function RecordingScreen({ lessonId, onClose, panels }: Props) {
+export function RecordingScreen({ lessonId, onClose, panels, notice: initialNotice }: Props) {
   const lesson = useLiveQuery(() => db.lessons.get(lessonId), [lessonId])
   const course = useLiveQuery(() => (lesson ? db.courses.get(lesson.courseId) : undefined), [lesson?.courseId])
   const r = useRecorder(lessonId)
+  const [notice, setNotice] = useState(initialNotice)
   const [flushers] = useState(() => new Set<() => Promise<void>>())
   const [onFlush] = useState(() => (fn: () => Promise<void>) => {
     flushers.add(fn)
@@ -86,7 +89,7 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
         </div>
         <div className="rec-controls">
           {r.state === 'idle' && (
-            <button className="ui-btn record" disabled={r.saving} onClick={() => void r.start()}>
+            <button className="ui-btn record" onClick={() => { setNotice(undefined); void r.start() }}>
               <Icon name="mic" /> {r.elapsed > 0 ? 'Continua' : 'Registra'}
             </button>
           )}
@@ -95,7 +98,14 @@ export function RecordingScreen({ lessonId, onClose, panels }: Props) {
           {r.state !== 'idle' && <button className="ui-btn icon-only" onClick={() => void r.stop()} aria-label="Ferma la registrazione" title="Ferma"><Icon name="stop" /></button>}
         </div>
         {r.state !== 'idle' && !r.wakeLock && <p className="rec-hint">Lo schermo può spegnersi: tieni il tablet attivo.</p>}
-        {r.error && <p className="rec-hint ui-error" role="alert">{r.error}</p>}
+        {notice && <p className="rec-hint ui-error" role="alert">{notice}</p>}
+        {r.error && (
+          <p className="rec-hint ui-error" role="alert">
+            {r.error}{' '}
+            {r.unsaved && <button className="ui-btn" onClick={r.downloadUnsaved}><Icon name="download" /> Scarica l'audio non salvato</button>}
+            {r.unsaved && <button className="ui-btn ghost" onClick={() => { if (confirm('Hai scaricato il file e l’hai controllato? L’audio non salvato verrà tolto dalla memoria e l’app smetterà di riprovare.')) r.discardUnsaved() }}>Ho scaricato il file: smetti di riprovare</button>}
+          </p>
+        )}
       </header>
 
       {panels?.({ recording: r.state !== 'idle', running: r.state === 'recording', now: r.elapsedSec, stream: r.stream, onFlush })}

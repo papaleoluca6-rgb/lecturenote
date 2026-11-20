@@ -1,7 +1,7 @@
 // Blocchi di audio per i servizi AI: ogni blocco è un file completo, convertito in WAV 16 kHz mono
 // (formato accettato da Gemini, a differenza del webm di Chrome).
 
-const RATE = 16000
+import { decode16k, RATE } from '../offline/audioSource'
 
 export function encodeWav(samples: Float32Array, rate = RATE): Blob {
   const buf = new ArrayBuffer(44 + samples.length * 2)
@@ -31,19 +31,7 @@ export async function blobToWav16k(blob: Blob): Promise<Blob> {
 
 /** Come blobToWav16k, più il volume medio (RMS, 0–1) del blocco: serve a saltare i blocchi muti. */
 export async function blobToWav16kRms(blob: Blob): Promise<{ wav: Blob; rms: number }> {
-  const ctx = new AudioContext()
-  let decoded: AudioBuffer
-  try {
-    decoded = await ctx.decodeAudioData(await blob.arrayBuffer())
-  } finally {
-    void ctx.close()
-  }
-  const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(decoded.duration * RATE)), RATE)
-  const src = off.createBufferSource()
-  src.buffer = decoded
-  src.connect(off.destination)
-  src.start()
-  const samples = (await off.startRendering()).getChannelData(0)
+  const samples = await decode16k(blob)
   let sum = 0
   for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i]
   return { wav: encodeWav(samples), rms: Math.sqrt(sum / samples.length) }

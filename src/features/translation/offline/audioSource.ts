@@ -36,21 +36,57 @@ export async function micSource(onChunk: OnChunk): Promise<Source> {
   }
 }
 
-/** Decodifica un file audio in mono a 16 kHz. */
-export async function decodeFile(file: Blob): Promise<Float32Array> {
+/** Decodifica un audio (file intero) in mono a 16 kHz. Usata anche dalla prova tecnica. */
+export async function decode16k(blob: Blob, maxSec = Infinity): Promise<Float32Array> {
   const ctx = new AudioContext()
   let decoded: AudioBuffer
   try {
-    decoded = await ctx.decodeAudioData(await file.arrayBuffer())
+    decoded = await ctx.decodeAudioData(await blob.arrayBuffer())
   } finally {
     void ctx.close()
   }
+  if (decoded.duration > maxSec) throw new Error(TOO_LONG)
   const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(decoded.duration * RATE)), RATE)
   const src = off.createBufferSource()
   src.buffer = decoded
   src.connect(off.destination)
   src.start()
   return (await off.startRendering()).getChannelData(0)
+}
+
+// Il file si decodifica tutto in memoria (≈ 0,4 MB al secondo prima di ricampionare): con 3 GB di RAM meglio un pezzo breve.
+const MAX_MB = 25
+const MAX_MIN = 15
+const TOO_LONG = `File troppo lungo per la prova (massimo ${MAX_MIN} minuti): usa uno spezzone breve della lezione.`
+
+/** Durata dai metadati, senza decodificare (NaN o Infinity se il file non la dice, come i webm del registratore). */
+async function metaDuration(file: Blob): Promise<number> {
+  const url = URL.createObjectURL(file)
+  const a = new Audio()
+  try {
+    a.preload = 'metadata'
+    a.src = url
+    await new Promise((res, rej) => {
+      a.onloadedmetadata = res
+      a.onerror = rej
+      window.setTimeout(res, 5000)
+    })
+    return a.duration
+  } catch {
+    return NaN
+  } finally {
+    a.removeAttribute('src')
+    URL.revokeObjectURL(url)
+  }
+}
+
+/** Decodifica un file per la prova, rifiutando quelli troppo grandi per la memoria del tablet. */
+export async function decodeFile(file: Blob): Promise<Float32Array> {
+  if (file.size > MAX_MB * 1048576) throw new Error(`File troppo grande per la prova (massimo ${MAX_MB} MB): usa uno spezzone breve della lezione.`)
+  // I webm del registratore dicono durata «Infinity»: lì decide il controllo dopo la decodifica.
+  const d = await metaDuration(file)
+  if (Number.isFinite(d) && d > MAX_MIN * 60) throw new Error(TOO_LONG)
+  return decode16k(file, MAX_MIN * 60)
 }
 
 /** Fa scorrere i campioni a velocità reale (un pezzo ogni 0,25 s); `onDone` alla fine. */

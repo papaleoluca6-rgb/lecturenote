@@ -1,5 +1,5 @@
 import { getSetting } from '../../db/settings'
-import { AI_IDS, ask, type AiId } from '../../lib/ai'
+import { AI_IDS, ask, maxInputChars, type AiId } from '../../lib/ai'
 
 // Riassunto e flashcard con l'AI: solo se l'utente ha inserito una sua chiave. Senza, si scrivono a mano.
 
@@ -25,6 +25,9 @@ const CARDS =
   'Dal testo di una lezione universitaria crea da 8 a 15 flashcard in italiano per ripassare i concetti più importanti. ' +
   'Rispondi SOLO con un array JSON: [{"front": "domanda", "back": "risposta breve", "ts": minuto_in_secondi}]. ' +
   '"ts" è il momento della lezione (in secondi) da cui viene la domanda, preso dai tempi [m:ss] del testo.'
+
+/** Quanto testo della lezione mandare all'AI scelta (dipende dal suo contesto, vedi lib/aiProviders.ts). */
+export const aiMaxChars = (ai: AiChoice) => maxInputChars(ai.id)
 
 export const summarize = (ai: AiChoice, text: string) => ask(ai.id, ai.key, SUMMARY, text, 90_000)
 

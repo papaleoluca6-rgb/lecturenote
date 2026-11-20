@@ -1,4 +1,5 @@
-// Utility canvas condivise da import PDF e immagini.
+// Misure e miniature delle slide (le utility canvas generiche sono in lib/image.ts).
+import { canvasToBlob, drawScaled, releaseCanvas } from '../../lib/image'
 
 /**
  * Lato lungo massimo della slide salvata. A schermo pieno la slide è larga ~1300 pixel reali sul tablet:
@@ -7,31 +8,6 @@
 export const MAX_SIDE = 3000
 /** Larghezza delle miniature (salvate a parte per non decodificare 100 immagini grandi nella barra). */
 export const THUMB_W = 240
-
-export function canvasToBlob(canvas: HTMLCanvasElement, type = 'image/jpeg', quality = 0.85): Promise<Blob> {
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Conversione immagine non riuscita'))), type, quality),
-  )
-}
-
-/** Libera subito la memoria della canvas (su Chrome Android non aspetta il garbage collector). */
-export function releaseCanvas(canvas: HTMLCanvasElement): void {
-  canvas.width = 0
-  canvas.height = 0
-}
-
-/** Disegna una sorgente in una canvas nuova di dimensione w×h, con sfondo bianco (i PNG trasparenti diventano leggibili). */
-export function drawScaled(src: CanvasImageSource, w: number, h: number): HTMLCanvasElement {
-  const c = document.createElement('canvas')
-  c.width = Math.max(1, Math.round(w))
-  c.height = Math.max(1, Math.round(h))
-  const ctx = c.getContext('2d')
-  if (!ctx) throw new Error('Canvas non disponibile')
-  ctx.fillStyle = '#fff'
-  ctx.fillRect(0, 0, c.width, c.height)
-  ctx.drawImage(src, 0, 0, c.width, c.height)
-  return c
-}
 
 /** Miniatura JPEG larga THUMB_W a partire da una canvas già renderizzata. */
 export async function makeThumb(src: HTMLCanvasElement | HTMLImageElement, w: number, h: number): Promise<Blob> {

@@ -6,6 +6,11 @@ import { postJson } from './http'
 export type AiId = 'gemini' | ChatProviderId
 export const AI_IDS: readonly AiId[] = ['gemini', ...CHAT_PROVIDERS.map((p) => p.id)]
 export const GEMINI_MODEL = 'gemini-2.5-flash-lite'
+/**
+ * Testo massimo (caratteri) da mandare in una richiesta a questa AI: Gemini regge un milione di token,
+ * le AI cinesi circa 128 mila (un carattere cinese ≈ un token, più lo spazio per la risposta).
+ */
+export const maxInputChars = (id: AiId) => (id === 'gemini' ? 200_000 : CHAT_PROVIDERS.find((p) => p.id === id)!.maxChars)
 export const aiLabel = (id: AiId) => (id === 'gemini' ? 'Gemini' : CHAT_PROVIDERS.find((p) => p.id === id)!.label)
 
 export interface GeminiPart { text?: string; inline_data?: { mime_type: string; data: string } }

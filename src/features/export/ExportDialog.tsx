@@ -1,32 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../lib/Icon'
 import { audioEstimate, audioFiles, type AudioEstimate } from './audioExport'
+import { canShare, canShareFiles, download, filesLabel, startedNotice } from './download'
 import { loadSource, textFile, type ExportFile, type ExportSource, type ExportTarget } from './notebooklm'
 import './export.css'
 
 const mb = (n: number) => `${(n / 1e6).toFixed(n < 1e7 ? 1 : 0)} MB`
-
-function canShare(files: File[]): boolean {
-  try {
-    return !!navigator.canShare?.({ files })
-  } catch {
-    return false
-  }
-}
-
-const canShareFiles = () => canShare([new File(['x'], 'a.txt', { type: 'text/plain' })])
-
-async function download(files: ExportFile[]): Promise<void> {
-  for (const f of files) {
-    const url = URL.createObjectURL(f.file)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = f.name
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
-    await new Promise((r) => setTimeout(r, 300))
-  }
-}
 
 function sizeLabel(est: AudioEstimate | null): string {
   if (!est || est.bytes <= 0) return ''
@@ -43,6 +22,8 @@ export function ExportDialog({ target, onClose }: { target: ExportTarget; onClos
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  /** File pronti da scaricare con un tocco (dopo una conversione lunga Chrome non conta più il primo tocco). */
+  const [pending, setPending] = useState<{ key: string; files: ExportFile[] } | null>(null)
   /** File già pronti (la conversione è lunga: se la condivisione scade, si riprova senza rifarla). */
   const ready = useRef<{ key: string; files: ExportFile[] } | null>(null)
   const abort = useRef<AbortController | null>(null)
@@ -87,19 +68,28 @@ export function ExportDialog({ target, onClose }: { target: ExportTarget; onClos
     setBusy(true)
     setError('')
     setNotice('')
+    setPending(null)
     try {
       const cached = ready.current?.key === key ? ready.current.files : null
       const files = cached ?? (await build(ac.signal))
       ready.current = { key, files }
-      if (mode === 'download') return await download(files)
-      // Chrome condivide solo alcuni tipi di file (non .aac): quelli esclusi si scaricano, dopo la condivisione.
+      if (mode === 'download') {
+        // Con l'audio la conversione è lunga: i download partono da un nuovo tocco, non da soli.
+        if (!cached && audio) {
+          setPending({ key, files })
+          return setNotice(`File pronti: tocca «Scarica ${filesLabel(files)}» per salvarli.`)
+        }
+        await download(files)
+        return setNotice(startedNotice(files))
+      }
+      // Chrome condivide solo alcuni tipi di file (non .aac): quelli esclusi si scaricano con un tocco in più.
       const shareable = files.filter((f) => canShare([f.file]))
       const rest = files.filter((f) => !shareable.includes(f))
       try {
         if (shareable.length) await navigator.share({ files: shareable.map((f) => f.file), title: src?.title })
         if (rest.length) {
-          await download(rest)
-          setNotice(`${rest.length === 1 ? 'Un file audio è stato scaricato' : `${rest.length} file audio sono stati scaricati`}: Android non permette di condividerli, caricali in NotebookLM dalla cartella Download.`)
+          setPending({ key, files: rest })
+          setNotice(`Android non permette di condividere ${rest.length === 1 ? 'un file audio' : `${rest.length} file audio`}: tocca «Scarica ${filesLabel(rest)}», poi caricali in NotebookLM dalla cartella Download.`)
         }
       } catch (e) {
         // Dopo una conversione lunga Chrome non considera più la condivisione "chiesta dall'utente".
@@ -119,7 +109,19 @@ export function ExportDialog({ target, onClose }: { target: ExportTarget; onClos
     }
   }
 
+  const savePending = async (files: ExportFile[]) => {
+    setPending(null)
+    setBusy(true)
+    try {
+      await download(files)
+      setNotice(startedNotice(files))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const n = src?.lessons.length ?? 0
+  const toSave = pending?.key === `${original}|${audio}` ? pending.files : null
   const what = src ? (src.kind === 'course' ? `Corso «${src.title}» · ${n === 1 ? '1 lezione' : `${n} lezioni`}` : `Lezione «${src.title}»`) : ''
   const noConvert = est?.needsConversion && est.format === 'none'
 
@@ -162,8 +164,9 @@ export function ExportDialog({ target, onClose }: { target: ExportTarget; onClos
             {notice && <p className="ui-muted" role="status">{notice}</p>}
             {error && <p className="ui-error" role="alert">{error}</p>}
             <div className="exp-actions">
+              {toSave && <button className="ui-btn primary" disabled={busy} onClick={() => void savePending(toSave)}><Icon name="download" /> Scarica {filesLabel(toSave)}</button>}
               {canShareFiles() && <button className="ui-btn" disabled={busy} onClick={() => void run('share')}><Icon name="share" /> Condividi</button>}
-              <button className="ui-btn primary" disabled={busy || n === 0} onClick={() => void run('download')}><Icon name="download" /> Scarica</button>
+              <button className={`ui-btn${toSave ? '' : ' primary'}`} disabled={busy || n === 0} onClick={() => void run('download')}><Icon name="download" /> Scarica</button>
             </div>
           </>
         )}

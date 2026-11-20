@@ -1,16 +1,13 @@
 import { aacSettings, aacSink } from './aac'
 import { tick, waitQueue } from './queue'
 import { Resampler, toMono } from './resample'
-import { MAX_FILE_BYTES, wavSink } from './sinks'
+import { wavSink } from './sinks'
 import { demuxWebm, isWebm, type WebmTrack } from './webm'
 
 export interface ConvertOptions {
   signal?: AbortSignal
   /** Byte del file originale già letti. */
   onProgress?: (bytesRead: number) => void
-  /** Salta l'AAC e produce WAV (anche per le prove). */
-  forceWav?: boolean
-  maxBytes?: number
 }
 
 export interface ConvertedAudio {
@@ -36,9 +33,9 @@ const PASS: [RegExp, string, string][] = [
 const hasDecoder = () => typeof AudioDecoder !== 'undefined' && typeof EncodedAudioChunk !== 'undefined'
 
 /** Cosa farà la conversione su questo dispositivo (per stimare la dimensione). */
-export async function audioPlan(forceWav = false): Promise<AudioPlan> {
+export async function audioPlan(): Promise<AudioPlan> {
   if (!hasDecoder()) return { format: 'none', bytesPerMin: 0 }
-  const aac = forceWav ? null : await aacSettings()
+  const aac = await aacSettings()
   // WAV: 16 kHz × 2 byte × 60 s.
   return aac ? { format: 'aac', bytesPerMin: (aac.bitrate / 8) * 60 } : { format: 'wav', bytesPerMin: 1_920_000 }
 }
@@ -50,7 +47,16 @@ export async function convertAudio(blob: Blob, mime: string, opts: ConvertOption
   if (pass && !webm) return { blobs: [blob], ext: pass[1], mime: pass[2] }
   if (!webm) throw new Error(`Formato audio non supportato (${mime || 'sconosciuto'}): esporta solo il testo.`)
   if (!hasDecoder()) throw new Error(NO_WEBCODECS)
-  return webmToNotebook(blob, opts)
+  return webmToNotebook([blob], opts)
+}
+
+/**
+ * Più segmenti WebM della stessa lezione → un solo audio (diviso solo oltre il limite di NotebookLM).
+ * La registrazione apre un segmento nuovo ogni 5 minuti: senza unirli, 90 minuti diventerebbero 18 file.
+ */
+export async function convertWebmLesson(blobs: Blob[], opts: ConvertOptions = {}): Promise<ConvertedAudio> {
+  if (!hasDecoder()) throw new Error(NO_WEBCODECS)
+  return webmToNotebook(blobs, opts)
 }
 
 async function openDecoder(track: WebmTrack, output: (d: AudioData) => void, error: (e: unknown) => void): Promise<AudioDecoder> {
@@ -62,11 +68,10 @@ async function openDecoder(track: WebmTrack, output: (d: AudioData) => void, err
   return dec
 }
 
-/** WebM/Opus → mono 16 kHz → AAC (o WAV), un pezzo alla volta: la memoria resta bassa anche con 2 ore. */
-async function webmToNotebook(blob: Blob, opts: ConvertOptions): Promise<ConvertedAudio> {
-  const max = opts.maxBytes ?? MAX_FILE_BYTES
-  const aac = opts.forceWav ? null : await aacSettings()
-  const sink = aac ? aacSink(aac, max) : wavSink(16_000, max)
+/** WebM/Opus (uno o più file in fila) → mono 16 kHz → AAC (o WAV), un pezzo alla volta: la memoria resta bassa anche con 2 ore. */
+async function webmToNotebook(files: Blob[], opts: ConvertOptions): Promise<ConvertedAudio> {
+  const aac = await aacSettings()
+  const sink = aac ? aacSink(aac) : wavSink()
   const pcm: Float32Array<ArrayBuffer>[] = []
   let resampler: Resampler | null = null
   let failure: unknown = null
@@ -93,32 +98,41 @@ async function webmToNotebook(blob: Blob, opts: ConvertOptions): Promise<Convert
   try {
     let n = 0
     let lastYield = performance.now()
-    for await (const ev of demuxWebm(blob)) {
+    // Byte dei file precedenti, per l'avanzamento complessivo.
+    let before = 0
+    for (const blob of files) {
+      // Ogni file ha la sua traccia: un decoder per file, lo stesso ricampionatore e la stessa uscita.
+      for await (const ev of demuxWebm(blob)) {
+        check()
+        if (ev.kind === 'track') {
+          dec ??= await openDecoder(ev.track, onData, (e) => { failure = e })
+          continue
+        }
+        if (!dec) continue
+        dec.decode(new EncodedAudioChunk({ type: 'key', timestamp: ev.timeUs, data: ev.data }))
+        if (++n % 50) continue
+        await waitQueue(dec, () => dec?.decodeQueueSize ?? 0, 20)
+        await drain()
+        opts.onProgress?.(before + ev.pos)
+        if (performance.now() - lastYield > 40) {
+          await tick()
+          lastYield = performance.now()
+        }
+      }
+      if (!dec) throw new Error('Nel file non c\'è audio Opus da convertire: esporta solo il testo.')
+      await dec.flush()
       check()
-      if (ev.kind === 'track') {
-        dec ??= await openDecoder(ev.track, onData, (e) => { failure = e })
-        continue
-      }
-      if (!dec) continue
-      dec.decode(new EncodedAudioChunk({ type: 'key', timestamp: ev.timeUs, data: ev.data }))
-      if (++n % 50) continue
-      await waitQueue(dec, () => dec?.decodeQueueSize ?? 0, 20)
+      dec.close()
+      dec = null
       await drain()
-      opts.onProgress?.(ev.pos)
-      if (performance.now() - lastYield > 40) {
-        await tick()
-        lastYield = performance.now()
-      }
+      before += blob.size
     }
-    if (!dec) throw new Error('Nel file non c\'è audio Opus da convertire: esporta solo il testo.')
-    await dec.flush()
-    check()
     const tail = resampler as Resampler | null // assegnato nella callback del decoder
     if (tail) pcm.push(tail.flush())
     await drain()
     check()
     const blobs = await sink.finish()
-    opts.onProgress?.(blob.size)
+    opts.onProgress?.(before)
     return { blobs, ext: sink.ext, mime: sink.mime }
   } finally {
     if (dec && dec.state !== 'closed') dec.close()

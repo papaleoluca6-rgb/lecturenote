@@ -60,6 +60,8 @@ export function useZoom(onSwipe: (dir: 1 | -1) => void) {
     } catch {
       // puntatore già rilasciato: si continua senza cattura
     }
+    // Primo dito di un gesto nuovo: un «multi» rimasto dalla penna in hover (senza dita appoggiate) non deve bloccarlo.
+    if (pts.current.size === 0) multi.current = false
     pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (pts.current.size >= 2) multi.current = true
     begin(view)

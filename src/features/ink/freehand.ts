@@ -53,6 +53,26 @@ function distToSegment(px: number, py: number, ax: number, ay: number, bx: numbe
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy))
 }
 
+/** Riquadro [x0, y0, x1, y1] dei punti del tratto (normalizzati), da calcolare una volta per pagina. */
+export type Box = [number, number, number, number]
+export function strokeBox(s: Stroke): Box {
+  const b: Box = [Infinity, Infinity, -Infinity, -Infinity]
+  for (const [x, y] of s.points) {
+    if (x < b[0]) b[0] = x
+    if (y < b[1]) b[1] = y
+    if (x > b[2]) b[2] = x
+    if (y > b[3]) b[3] = y
+  }
+  return b
+}
+
+/** Il segmento della gomma a–b può toccare il tratto? Confronto veloce col riquadro allargato di raggio + mezzo spessore. */
+export function nearBox(box: Box, s: Stroke, a: [number, number], b: [number, number], vbH: number, radius: number): boolean {
+  const mx = (radius + s.size / 2) / VB_W
+  const my = (radius + s.size / 2) / vbH
+  return Math.min(a[0], b[0]) <= box[2] + mx && Math.max(a[0], b[0]) >= box[0] - mx && Math.min(a[1], b[1]) <= box[3] + my && Math.max(a[1], b[1]) >= box[1] - my
+}
+
 /** Il passaggio della gomma da `a` a `b` (normalizzati) tocca il tratto? La gomma cancella tratti interi. */
 export function hitsStroke(s: Stroke, a: [number, number], b: [number, number], vbH: number, radius: number): boolean {
   const lim = radius + s.size / 2

@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId, type Id, type Sec } from '../../db/schema'
 import { NoteItem } from './NoteItem'
 import { PhotoViewer } from './PhotoViewer'
+import { keepDraft, loadDraft } from './draft'
 import { shrinkPhoto } from './photo'
 import './notes.css'
 import { Icon } from '../../lib/Icon'
@@ -12,8 +13,8 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 /** Note di testo e foto agganciate alla timeline. Il ts è quello del primo carattere scritto. */
 export function NotesPanel({ lessonId, now, onFlush }: { lessonId: Id; now: () => Sec; onFlush: (fn: () => Promise<void>) => () => void }) {
   const notes = useLiveQuery(() => db.notes.where('lessonId').equals(lessonId).sortBy('ts'), [lessonId])
-  const [text, setText] = useState('')
-  const [startTs, setStartTs] = useState<Sec>()
+  const [text, setText] = useState(() => loadDraft(lessonId)?.text ?? '')
+  const [startTs, setStartTs] = useState<Sec | undefined>(() => loadDraft(lessonId)?.startTs)
   const [viewer, setViewer] = useState<string>()
   const closeViewer = useCallback(() => setViewer(undefined), [])
   const [error, setError] = useState<string>()
@@ -22,6 +23,7 @@ export function NotesPanel({ lessonId, now, onFlush }: { lessonId: Id; now: () =
   useEffect(() => { draft.current = { text, startTs, now } })
 
   const reset = () => {
+    keepDraft(lessonId, undefined)
     draft.current.text = ''
     setText('')
     setStartTs(undefined)
@@ -48,8 +50,21 @@ export function NotesPanel({ lessonId, now, onFlush }: { lessonId: Id; now: () =
       void db.lessons.get(lessonId).then((l) => l && flushRef.current())
     }
   }, [lessonId, onFlush])
+  // Android può chiudere la scheda in background senza avvisare: quando si nasconde, la bozza si mette da parte
+  // (non diventa una nota: aprendo la fotocamera con «Foto» il testo deve restare la didascalia) e torna alla riapertura.
+  useEffect(() => {
+    const save = () => keepDraft(lessonId, draft.current)
+    const onHide = () => document.visibilityState === 'hidden' && save()
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', save)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', save)
+    }
+  }, [lessonId])
 
   const onChange = (v: string) => {
+    if (!v.trim()) keepDraft(lessonId, undefined)
     if (!v) setStartTs(undefined)
     else if (!text) setStartTs(now())
     setText(v)

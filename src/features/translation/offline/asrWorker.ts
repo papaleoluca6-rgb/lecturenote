@@ -95,6 +95,11 @@ function init(m: Init) {
         }
         const t1 = performance.now()
         rec = w.createOnlineRecognizer(w.Module, config(m.kind))
+        // Il modello ora è nella memoria del motore: copie dei file e buffer originali non servono più (RAM del tablet).
+        for (const f of m.files) w.FS.unlink(`/${f.name}`)
+        m.files = []
+        w.Module.wasmBinary = null
+        w.Module.onRuntimeInitialized = null
         stream = rec.createStream()
         const heap = w.Module.HEAPU8?.length ?? 0
         w.postMessage({ type: 'ready', ms: Math.round(performance.now() - t0), modelMs: Math.round(performance.now() - t1), heapMB: Math.round(heap / 1048576) })

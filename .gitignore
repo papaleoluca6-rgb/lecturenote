@@ -31,3 +31,7 @@ public/pdfjs
 
 # File dei test con Playwright (log, download)
 .playwright-mcp/
+
+# Note private (repository pubblico: non vanno pubblicate)
+reports/
+research_notes/

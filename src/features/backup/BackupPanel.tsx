@@ -22,12 +22,15 @@ export function BackupPanel() {
     return `Backup creato (${mb(blob.size)}).`
   })
 
-  const doImport = (file: File) => {
-    if (!confirm("Importare il backup? Gli elementi con lo stesso id verranno sovrascritti; tutto il resto resta com'è e nulla viene eliminato.")) return
+  const doImport = (file: File, overwrite: boolean) => {
+    const question = overwrite
+      ? 'Sovrascrivere con il backup? Lezioni, note e impostazioni presenti anche nel backup tornano come erano nel backup: le modifiche fatte dopo vanno PERSE. Il resto resta e nulla viene eliminato.'
+      : "Importare il backup? Si aggiungono solo gli elementi che mancano sul tablet; quelli già presenti restano com'erano e nulla viene eliminato."
+    if (!confirm(question)) return
     void run(async () => {
-      const { counts, unknown } = await importBackup(file, setMsg)
+      const { counts, unknown } = await importBackup(file, overwrite, setMsg)
       const list = Object.entries(counts).map(([t, n]) => `${t}: ${n}`).join(', ')
-      return `Importazione completata. ${list}.` + (unknown.length ? ` Ignorate tabelle sconosciute: ${unknown.join(', ')}.` : '')
+      return `Importazione completata. Elementi scritti: ${list}.` + (unknown.length ? ` Ignorate tabelle sconosciute: ${unknown.join(', ')}.` : '')
     })
   }
 
@@ -37,14 +40,16 @@ export function BackupPanel() {
       <p className="ui-muted">I dati restano sul tablet: esporta un file per tenerne una copia (le chiavi API non sono incluse).</p>
       <div className="ui-row">
         <button className="ui-btn" disabled={busy} onClick={() => void doExport()}><Icon name="download" /> Esporta tutto</button>
-        <label className={`ui-btn${busy ? ' disabled' : ''}`}>
-          <Icon name="upload" /> Importa backup…
-          <input type="file" accept=".lnbak" hidden disabled={busy} onChange={(e) => {
-            const f = e.target.files?.[0]
-            e.target.value = ''
-            if (f) doImport(f)
-          }} />
-        </label>
+        {([[false, 'Importa backup (solo ciò che manca)…'], [true, 'Sovrascrivi tutto con un backup…']] as const).map(([overwrite, label]) => (
+          <label key={label} className={`ui-btn${busy ? ' disabled' : ''}`}>
+            <Icon name="upload" /> {label}
+            <input type="file" accept=".lnbak" hidden disabled={busy} onChange={(e) => {
+              const f = e.target.files?.[0]
+              e.target.value = ''
+              if (f) doImport(f, overwrite)
+            }} />
+          </label>
+        ))}
         <label className={`ui-btn${busy ? ' disabled' : ''}`}>
           <Icon name="folder" /> Lezioni della vecchia app (.json)…
           <input type="file" accept=".json,application/json" multiple hidden disabled={busy} onChange={(e) => {

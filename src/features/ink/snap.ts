@@ -39,6 +39,24 @@ function band(base: Stroke, x0: number, x1: number, cy: number, hVb: number): St
   return { ...base, points, size: Math.round(size * 10) / 10 }
 }
 
+/** Spazio tra due parole (in altezze di parola) oltre il quale finisce un blocco di testo, es. tra due colonne. */
+const GAP_K = 3
+
+/** Parole di una riga (già ordinate da sinistra) divise in blocchi dove lo spazio supera GAP_K altezze di parola. */
+function runs(words: Word[], vbH: number): Word[][] {
+  const out: Word[][] = []
+  for (const wd of words) {
+    const run = out.at(-1)
+    const prev = run?.at(-1)
+    if (run && prev && (wd.x - prev.x - prev.w) * VB_W <= GAP_K * Math.max(prev.h, wd.h) * vbH) run.push(wd)
+    else out.push([wd])
+  }
+  return out
+}
+
+/** Estremi orizzontali [x0, x1] di un gruppo di parole. */
+const extent = (ws: Word[]): [number, number] => [Math.min(...ws.map((w) => w.x)), Math.max(...ws.map((w) => w.x + w.w))]
+
 /** Parola sotto il punto (con un po' di tolleranza: il tratto a mano non è mai preciso). */
 function hit(lines: Line[], x: number, y: number): Word | undefined {
   for (const l of lines) {
@@ -62,16 +80,23 @@ export function snapHighlight(s: Stroke, lines: Line[], vbH: number): Stroke[] |
     const order = (w: Word) => w.line * 10 + w.x
     let [first, last] = [hits[0], hits[hits.length - 1]]
     if (order(first) > order(last)) [first, last] = [last, first]
+    // Colonna del testo toccato: le fasce restano dentro i blocchi che la attraversano (slide a due colonne).
+    const runOf = (w: Word) => runs(lines[w.line].words, vbH).find((r) => r.includes(w)) ?? [w]
+    const [a0, a1] = extent(runOf(first))
+    const [b0, b1] = extent(runOf(last))
+    const c0 = Math.min(a0, b0)
+    const c1 = Math.max(a1, b1)
     const out: Stroke[] = []
     for (let li = first.line; li <= last.line; li++) {
       const ws = lines[li].words.filter((w) => (li > first.line || w.x >= first.x) && (li < last.line || w.x <= last.x))
-      if (!ws.length) continue
-      const x0 = Math.min(...ws.map((w) => w.x))
-      const x1 = Math.max(...ws.map((w) => w.x + w.w))
-      const h = Math.max(...ws.map((w) => w.h))
-      // Un filo di margine ai lati, come un evidenziatore vero che copre la parola intera.
-      const pad = (h * vbH * 0.12) / VB_W
-      out.push(band(s, x0 - pad, x1 + pad, lines[li].cy, h * vbH))
+      for (const r of runs(ws, vbH)) {
+        const [x0, x1] = extent(r)
+        if (x1 < c0 || x0 > c1) continue
+        const h = Math.max(...r.map((w) => w.h))
+        // Un filo di margine ai lati, come un evidenziatore vero che copre la parola intera.
+        const pad = (h * vbH * 0.12) / VB_W
+        out.push(band(s, x0 - pad, x1 + pad, lines[li].cy, h * vbH))
+      }
     }
     return out.length ? out : null
   }

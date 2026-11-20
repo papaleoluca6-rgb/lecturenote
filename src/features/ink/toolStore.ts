@@ -19,6 +19,8 @@ export interface ToolState {
   hlColor: string
   /** Se vero anche il dito scrive; altrimenti il dito sfoglia e fa zoom, e scrive solo la penna (o il mouse). */
   fingerDraws: boolean
+  /** Lezione aperta nella penna: «Annulla» e «Ripeti» valgono solo per le sue azioni. */
+  lessonId?: Id
   /** Azioni da annullare, l'ultima in fondo: tratti scritti o cancellati con la gomma. */
   undo: InkOp[]
   /** Azioni annullate, da rifare con «Ripeti» (si svuota a ogni azione nuova). */
@@ -41,6 +43,7 @@ export const getTool = (): ToolState => state
 
 /** Un'azione della penna: tratti aggiunti (penna, evidenziatore: anche più fasce insieme) o tolti dalla gomma. */
 export interface InkOp {
+  lessonId: Id
   pageId: Id
   kind: 'add' | 'erase'
   strokes: Stroke[]
@@ -59,7 +62,23 @@ export function inkSaved(err?: unknown): void {
 
 /** Registra un'azione per «Annulla» (al massimo le ultime 100). */
 export function pushOp(op: InkOp): void {
+  // Salvataggio finito dopo essere passati a un'altra lezione: non va nella cronologia di quella.
+  if (state.lessonId && op.lessonId !== state.lessonId) return
   setTool({ undo: [...state.undo.slice(-99), op], redo: [] })
+}
+
+/** Una lezione apre la penna: si tengono solo le sue azioni, così «Annulla» non tocca i tratti di un'altra lezione. */
+export function enterLesson(lessonId: Id): void {
+  if (state.lessonId === lessonId) return
+  const mine = (o: InkOp) => o.lessonId === lessonId
+  setTool({ lessonId, undo: state.undo.filter(mine), redo: state.redo.filter(mine) })
+}
+
+/** Toglie da «Annulla» e «Ripeti» le azioni sulle pagine indicate (pagine eliminate). */
+export function dropOps(pageIds: ReadonlySet<Id>): void {
+  const keep = (o: InkOp) => !pageIds.has(o.pageId)
+  if (state.undo.every(keep) && state.redo.every(keep)) return
+  setTool({ undo: state.undo.filter(keep), redo: state.redo.filter(keep) })
 }
 
 export function useInkTool(): ToolState {

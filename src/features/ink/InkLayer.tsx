@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { memo, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import type { Id, Sec, Stroke } from '../../db/schema'
-import { findPage, strokeKey, type InkTarget } from './data'
+import { findPage, type InkTarget } from './data'
+import { strokeKey } from './strokeKey'
+import { enterLesson } from './toolStore'
 import { VB_W, strokePath } from './freehand'
 import { textLines } from './snap'
 import { TextLayer } from './TextLayer'
@@ -31,9 +33,10 @@ const StrokePath = memo(
 const Saved = memo(function Saved({ strokes, vbH, hidden }: { strokes: Stroke[]; vbH: number; hidden: Set<string> }) {
   return (
     <g>
-      {strokes.map((s) => {
+      {strokes.map((s, i) => {
         const k = strokeKey(s)
-        return hidden.has(k) ? null : <StrokePath key={k} s={s} vbH={vbH} />
+        // Tratti vecchi identici (senza id) avrebbero la stessa chiave: si aggiunge la posizione.
+        return hidden.has(k) ? null : <StrokePath key={s.id ? k : `${k}#${i}`} s={s} vbH={vbH} />
       })}
     </g>
   )
@@ -51,6 +54,7 @@ export function InkLayer({ lessonId, target, width, height, now, words }: Props)
   const lines = useMemo(() => textLines(words), [words])
   const ink = useInkInput(lessonId, target, page, vbH, now, refs, lines)
   const strokes = useMemo(() => page?.strokes ?? [], [page])
+  useEffect(() => enterLesson(lessonId), [lessonId])
 
   return (
     <>

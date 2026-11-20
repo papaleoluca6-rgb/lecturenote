@@ -85,6 +85,8 @@ export interface Stroke {
   size: number
   tool: 'pen' | 'highlighter'
   ts: Sec
+  /** Identità del tratto (campo non indicizzato: nessuna nuova versione). Assente nei tratti salvati prima del 2026-11-20. */
+  id?: string
 }
 
 /** Casella di testo scritta sopra una pagina o una slide. Posizione e larghezza normalizzate 0..1 sulla pagina. */

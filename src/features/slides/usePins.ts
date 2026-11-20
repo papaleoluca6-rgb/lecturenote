@@ -42,6 +42,17 @@ export function useSlidePins(lessonId: Id, slideId: Id | undefined, active: bool
     else buf.flush()
   }, [buf, slideId, active])
 
-  // Chiudendo la schermata si salva subito l'aggancio in sospeso.
-  useEffect(() => () => buf.flush(), [buf])
+  // Chiudendo la schermata si salva subito l'aggancio in sospeso; anche quando Android manda la scheda
+  // in background (potrebbe chiuderla senza avvisare).
+  useEffect(() => {
+    const onHide = () => document.visibilityState === 'hidden' && buf.flush()
+    const onPageHide = () => buf.flush()
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', onPageHide)
+      buf.flush()
+    }
+  }, [buf])
 }

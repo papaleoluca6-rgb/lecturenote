@@ -79,7 +79,9 @@ export async function loadSource(target: ExportTarget): Promise<ExportSource | n
 
 export async function buildText(src: ExportSource, opts: ExportOptions): Promise<string> {
   const course = src.course
-  const bodies = await Promise.all(src.lessons.map((l) => lessonText(l, course, opts)))
+  // Una lezione alla volta: le pagine a penna hanno tutti i tratti, un corso intero insieme non sta nei 3 GB del tablet.
+  const bodies: string[] = []
+  for (const l of src.lessons) bodies.push(await lessonText(l, course, opts))
   if (src.kind === 'lesson') return `${INTRO}\n\n${bodies[0]}`
   const head = [`# Corso: ${src.title}`, '', INTRO, '', `Lezioni (${src.lessons.length}):`, ...src.lessons.map((l) => `- ${dateShort(l.date)} · ${l.title}`), '']
   return `${head.join('\n')}\n---\n\n${bodies.join('\n---\n\n')}`

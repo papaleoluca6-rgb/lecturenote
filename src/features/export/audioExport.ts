@@ -1,13 +1,12 @@
 import { db, type AudioSegment, type Course, type Lesson } from '../../db/schema'
-import { audioPlan, convertAudio, type AudioPlan } from './convertAudio'
+import { audioPlan, convertAudio, convertWebmLesson, type AudioPlan, type ConvertedAudio } from './convertAudio'
+import { isWebm } from './webm'
 import { lessonFileBase, safeName, type ExportFile } from './notebooklm'
 
 export interface AudioExportOptions {
   signal?: AbortSignal
   /** Avanzamento complessivo da 0 a 1. */
   onProgress?: (fraction: number) => void
-  forceWav?: boolean
-  maxBytes?: number
 }
 
 const isWebmMime = (mime: string) => /webm/.test(mime)
@@ -19,26 +18,36 @@ async function segments(lessons: Lesson[]): Promise<{ lesson: Lesson; segs: Audi
   })))
 }
 
-/** Audio delle lezioni convertito in formati che NotebookLM accetta, un file per segmento (o parte). */
+/** Audio delle lezioni convertito in formati che NotebookLM accetta: un file per lezione (o per segmento, se non sono tutti WebM). */
 export async function audioFiles(lessons: Lesson[], course: Course | undefined, opts: AudioExportOptions = {}): Promise<ExportFile[]> {
   const all = await segments(lessons)
   const total = all.reduce((n, l) => n + l.segs.reduce((m, s) => m + s.blob.size, 0), 0) || 1
   let done = 0
   const out: ExportFile[] = []
+  const push = (r: ConvertedAudio, base: string) =>
+    r.blobs.forEach((blob, i) => {
+      const name = `${safeName(r.blobs.length > 1 ? `${base} (parte ${i + 1})` : base)}.${r.ext}`
+      out.push({ name, file: new File([blob], name, { type: r.mime }) })
+    })
   for (const { lesson, segs } of all) {
+    // Registrazioni dell'app (WebM, un segmento ogni 5 minuti): tutti in un solo file per lezione.
+    if (segs.length > 1 && (await Promise.all(segs.map((s) => isWebm(s.blob)))).every(Boolean)) {
+      const start = done
+      const r = await convertWebmLesson(segs.map((s) => s.blob), {
+        signal: opts.signal,
+        onProgress: (b) => opts.onProgress?.((start + b) / total),
+      })
+      done += segs.reduce((m, s) => m + s.blob.size, 0)
+      push(r, `${lessonFileBase(lesson, course)} - audio`)
+      continue
+    }
     for (const s of segs) {
       const r = await convertAudio(s.blob, s.mime, {
         signal: opts.signal,
-        forceWav: opts.forceWav,
-        maxBytes: opts.maxBytes,
         onProgress: (b) => opts.onProgress?.((done + b) / total),
       })
       done += s.blob.size
-      const base = `${lessonFileBase(lesson, course)} - audio ${s.index + 1}`
-      r.blobs.forEach((blob, i) => {
-        const name = `${safeName(r.blobs.length > 1 ? `${base} (parte ${i + 1})` : base)}.${r.ext}`
-        out.push({ name, file: new File([blob], name, { type: r.mime }) })
-      })
+      push(r, `${lessonFileBase(lesson, course)} - audio ${s.index + 1}`)
     }
   }
   return out

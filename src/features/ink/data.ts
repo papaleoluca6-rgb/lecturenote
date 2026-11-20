@@ -1,5 +1,6 @@
-import { getTool, setTool } from './toolStore'
+import { dropOps } from './toolStore'
 import { db, newId, type Id, type InkPage, type Paper, type Stroke, type TextBox } from '../../db/schema'
+import { strokeKey } from './strokeKey'
 
 /** Dove si scrive: sopra una slide, oppure su una pagina bianca già esistente. */
 export type InkTarget = { slideId: Id } | { pageId: Id }
@@ -27,8 +28,9 @@ export async function addStroke(lessonId: Id, target: InkTarget, stroke: Stroke 
   })
 }
 
-/** Identità di un tratto anche dopo il passaggio dal database (che ne salva una copia). */
-export const strokeKey = (s: Stroke) => `${s.ts}|${s.points.length}|${s.points[0]?.join(',')}`
+/** La pagina esiste ancora? (es. non è stata eliminata insieme alla sua presentazione). */
+export const pageExists = (pageId: Id): Promise<boolean> =>
+  db.ink.where(':id').equals(pageId).count().then((n) => n > 0)
 
 /**
  * Toglie i tratti indicati (gomma), riconosciuti dal contenuto e non dalla posizione:
@@ -97,6 +99,5 @@ export async function addBlankPage(lessonId: Id): Promise<Id> {
 /** Elimina la pagina; «Annulla» e «Ripeti» non devono più puntare lì. */
 export async function deletePage(pageId: Id): Promise<void> {
   await db.ink.delete(pageId)
-  const t = getTool()
-  setTool({ undo: t.undo.filter((o) => o.pageId !== pageId), redo: t.redo.filter((o) => o.pageId !== pageId) })
+  dropOps(new Set([pageId]))
 }

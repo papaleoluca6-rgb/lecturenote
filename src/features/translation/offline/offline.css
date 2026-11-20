@@ -6,3 +6,4 @@
 .off-phrases { list-style: none; display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
 .off-phrases li { display: grid; gap: 2px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--s2); }
 .off-it { font-weight: 600; }
+.off-dl { white-space: pre-line; }

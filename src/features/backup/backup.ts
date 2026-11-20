@@ -32,8 +32,12 @@ export function downloadBackup(blob: Blob) {
 
 export interface ImportResult { counts: Record<string, number>; unknown: string[] }
 
-/** Unisce il backup al database: stesso id = sovrascritto, il resto resta. */
-export async function importBackup(file: File, onProgress: (msg: string) => void): Promise<ImportResult> {
+/**
+ * Unisce il backup al database. Di norma aggiunge solo gli elementi che mancano (quelli già sul tablet,
+ * magari più recenti, restano com'erano; anche le impostazioni). Con `overwrite` lo stesso id viene sovrascritto.
+ * In entrambi i casi nulla viene eliminato.
+ */
+export async function importBackup(file: File, overwrite: boolean, onProgress: (msg: string) => void): Promise<ImportResult> {
   const { meta, tables } = await decode(file)
   if (meta.dbVersion > db.verno) throw new Error("Il backup viene da una versione più recente dell'app: aggiornala e riprova.")
   const known = db.tables.filter((t) => t.name in tables)
@@ -45,12 +49,20 @@ export async function importBackup(file: File, onProgress: (msg: string) => void
       let i = 0
       for (const t of known) {
         const rows = withoutSecrets(t.name, tables[t.name])
+        const keyPath = t.schema.primKey.keyPath as string
         i++
+        let added = 0
         for (let at = 0; at < rows.length || at === 0; at += CHUNK) {
           onProgress(`Importo ${t.name}… ${Math.min(at + CHUNK, rows.length)}/${rows.length} righe (tabella ${i}/${known.length})`)
-          await t.bulkPut(rows.slice(at, at + CHUNK))
+          let chunk = rows.slice(at, at + CHUNK)
+          if (!overwrite) {
+            const have = await t.bulkGet(chunk.map((r) => (r as Record<string, string>)[keyPath]))
+            chunk = chunk.filter((_, k) => !have[k])
+          }
+          await t.bulkPut(chunk)
+          added += chunk.length
         }
-        counts[t.name] = rows.length
+        counts[t.name] = added
       }
     })
   } catch (e) {

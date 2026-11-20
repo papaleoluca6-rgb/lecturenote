@@ -10,6 +10,15 @@ async function nextPage(lessonId: Id): Promise<number> {
 }
 
 const isPdf = (f: File) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
+/** Alcuni file manager Android passano le foto senza tipo MIME: vale anche l'estensione. */
+const isImage = (f: File) => f.type.startsWith('image/') || /\.(jpe?g|png|webp|gif)$/i.test(f.name)
+
+/** Nome libero per una presentazione: «slide (2)», «slide (3)»… se nella lezione ce n'è già una con lo stesso nome. */
+function uniqueDeckName(base: string, taken: Set<string>): string {
+  let name = base
+  for (let n = 2; taken.has(name); n++) name = `${base} (${n})`
+  return name
+}
 
 /** La lezione è stata eliminata durante l'import (l'utente è uscito da una lezione vuota). */
 class LessonGone extends Error {}
@@ -36,9 +45,14 @@ export async function importFiles(lessonId: Id, files: File[], progress: Progres
     pending.push({ id: newId(), lessonId, deckName, page: page++, ...r })
     if (pending.length >= BATCH) await flush()
   }
+  // Le presentazioni si riconoscono dal nome: un «slides.pdf» aggiornato non deve fondersi con quello vecchio.
+  const taken = new Set<string>()
+  await db.slides.where('lessonId').equals(lessonId).each((s) => void taken.add(s.deckName))
   try {
     for (const f of files) {
-      const deck = f.name.replace(/\.[^.]+$/, '')
+      if (!isPdf(f) && !isImage(f)) continue
+      const deck = uniqueDeckName(f.name.replace(/\.[^.]+$/, ''), taken)
+      taken.add(deck)
       if (isPdf(f)) {
         progress(`Apro ${f.name}…`)
         // pdf.js è pesante: si carica solo al primo import, non all'avvio dell'app.
@@ -47,7 +61,7 @@ export async function importFiles(lessonId: Id, files: File[], progress: Progres
           progress(`${f.name}: pagina ${i + 1} di ${total}`)
           await save(deck, r)
         })
-      } else if (f.type.startsWith('image/')) {
+      } else {
         progress(`Importo ${f.name}…`)
         await save(deck, await renderImage(f))
       }

@@ -11,6 +11,7 @@ Niente backend e niente Supabase: i dati restano sul tablet, backup = export/imp
 - `npm run dev`: server locale (http://localhost:5173)
 - `npm run build`: type-check + build di produzione (da eseguire prima di dire "fatto")
 - `npm run lint`: oxlint
+- `npm run test`: test automatici (vitest) delle parti di logica pura (`*.test.ts` accanto al file)
 - Prova sul tablet: collegarlo con USB, poi in Chrome sul PC `chrome://inspect` → Port forwarding `5173 → localhost:5173`. Il microfono funziona solo su `localhost` o HTTPS, NON su `http://192.168.x.x`.
 - **App pubblicata**: https://papaleoluca6-rgb.github.io/lecturenote/ (repository pubblico `papaleoluca6-rgb/lecturenote`). Ogni push su `main` la ricompila e la pubblica (`.github/workflows/pages.yml`, `BASE_PATH=/lecturenote/`). Online c'è solo il codice: i dati restano sul tablet. Repository pubblico = mai chiavi, dati personali o file delle lezioni nei commit.
 - Prova sul tablet senza cavo, con il server di sviluppo: `npm run dev:tablet` sul PC, tablet sulla stessa rete (meglio hotspot), e in Chrome del tablet `chrome://flags/#unsafely-treat-insecure-origin-as-secure` con `http://<IP-del-PC>:5173` per sbloccare il microfono.

@@ -40,12 +40,12 @@ export function ProbeScreen({ onClose }: { onClose: () => void }) {
         {!webSpeechAvailable() && <p className="pr-res ko">Questo browser non ha Web Speech API: usa Chrome.</p>}
       </section>
       <OfflinePanel />
-      <KeysPanel cfg={cfg} vpn={vpn} onCfg={setCfg} onResult={(r) => update((l) => ({ ...l, conn: [...l.conn, r] }))} />
+      <KeysPanel cfg={cfg} vpn={vpn} onCfg={setCfg} onResult={(r) => update((l) => ({ ...l, conn: [...l.conn, r].slice(-100) }))} />
       <LivePanel
         cfg={cfg}
         vpn={vpn}
         onPhrase={(p) => update((l) => ({ ...l, phrases: upsert(l.phrases, p) }))}
-        onSession={(s) => update((l) => ({ ...l, sessions: [...l.sessions, s] }))}
+        onSession={(s) => update((l) => ({ ...l, sessions: [...l.sessions, s].slice(-100) }))}
       />
       {log && <ResultsPanel log={log} onClear={() => setLog(EMPTY_LOG)} />}
     </main>

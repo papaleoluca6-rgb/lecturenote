@@ -16,7 +16,8 @@ export default defineConfig({
       // 'prompt': una versione nuova non prende il controllo da sola a metà lezione (cancellava i file della vecchia
       // e rallentava il tablet): si applica dal pulsante "Aggiorna" della libreria o alla prossima apertura dell'app.
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
+      // favicon e icone le precacha già globPatterns (svg, png): con includeAssets/includeManifestIcons comparivano due volte in sw.js.
+      includeManifestIcons: false,
       manifest: {
         name: 'LectureNote',
         short_name: 'LectureNote',
@@ -39,8 +40,9 @@ export default defineConfig({
       workbox: {
         // pdf.js worker e font sono pesanti: alzo il limite di precache
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-        // + risorse di pdf.js in public/pdfjs (mappe CJK, font, wasm) per importare PDF offline
-        globPatterns: ['**/*.{js,css,html,svg,png,bcmap,pfb,ttf,wasm,icc}'],
+        // + risorse di pdf.js in public/pdfjs (mappe CJK, font, wasm) per importare PDF offline.
+        // mjs: il worker di pdf.js (pdf.worker.min-*.mjs). Senza, in aula senza rete l'import dei PDF falliva.
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,bcmap,pfb,ttf,wasm,icc}'],
         // Motori offline (sherpa-onnx, Bergamot): pesanti, li scarica e li conserva solo chi li usa (translation/offline/models.ts).
         globIgnores: ['offline/**'],
       },

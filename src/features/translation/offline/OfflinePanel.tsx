@@ -5,8 +5,8 @@ import { cacheSize, clearModels, downloadAll, isCached } from './models'
 import { INITIAL, OfflineTest, summary, type TestState } from './offlineTest'
 import './offline.css'
 
-const mb = (n: number) => `${Math.round(n / 1048576)} MB`
-const total = (m: AsrModel) => filesFor(m).reduce((s, f) => s + (f.size ?? 0), 0)
+const mb = (n: number) => `${(n / 1048576).toFixed(n < 10 * 1048576 ? 1 : 0)} MB`
+const total = (m: AsrModel) => filesFor(m).reduce((s, f) => s + f.size, 0)
 
 /** Quali modelli sono già tutti nella cache, e quanto spazio occupano. */
 async function cacheStatus() {
@@ -16,10 +16,11 @@ async function cacheStatus() {
 
 /** Prova del traduttore senza rete: ascolto sherpa-onnx + traduzione Bergamot, tutto sul tablet. */
 export function OfflinePanel() {
-  const [model, setModel] = useState<AsrModel>(ASR_MODELS[1])
+  const [model, setModel] = useState<AsrModel>(ASR_MODELS[0])
   const [ready, setReady] = useState<Record<string, boolean>>({})
   const [used, setUsed] = useState(0)
   const [dl, setDl] = useState('')
+  const [downloading, setDownloading] = useState(false)
   const [state, setState] = useState<TestState>(INITIAL)
   const [copied, setCopied] = useState(false)
   const test = useRef<OfflineTest | null>(null)
@@ -35,12 +36,17 @@ export function OfflinePanel() {
   }, [])
 
   const download = async () => {
+    setDownloading(true)
     try {
-      await downloadAll(filesFor(model), (done, all, file) => setDl(`${file}: ${mb(done)} di ${mb(all)}`))
+      await downloadAll(filesFor(model), (p) =>
+        setDl(`${mb(p.done)} di ${mb(p.total)} · ${p.speed ? `${mb(p.speed)}/s` : '…'} · ${p.file}${p.retry ? `
+${p.retry}` : ''}`),
+      )
       setDl('')
     } catch (e) {
-      setDl(`Scaricamento interrotto (${(e as Error).message}). Con la VPN accesa riprova: riparte dai file mancanti.`)
+      setDl(`Scaricamento interrotto: ${(e as Error).message}. Premi di nuovo «Scarica»: riparte dai pezzi già arrivati.${model.external ? ' Questo modello viene da Hugging Face: dalla Cina serve la VPN.' : ''}`)
     }
+    setDownloading(false)
     await refresh()
   }
 
@@ -68,19 +74,19 @@ export function OfflinePanel() {
 
       <div className="off-models" role="radiogroup" aria-label="Modello di ascolto">
         {ASR_MODELS.map((m) => (
-          <button key={m.id} className="ui-btn off-model" aria-pressed={m.id === model.id} disabled={busy} onClick={() => pick(m)}>
+          <button key={m.id} className="ui-btn off-model" aria-pressed={m.id === model.id} disabled={busy || downloading} onClick={() => pick(m)}>
             <span>{m.label}</span>
-            <span className="pr-muted">{mb(total(m))} in tutto{ready[m.id] ? ' · scaricato' : ''}</span>
+            <span className="pr-muted">{mb(total(m))} in tutto{m.external ? ' · serve la VPN' : ''}{ready[m.id] ? ' · scaricato' : ''}</span>
           </button>
         ))}
       </div>
 
       <div className="pr-row">
-        {!ready[model.id] && <button className="ui-btn primary" disabled={!!dl && !dl.startsWith('Scaricamento interrotto')} onClick={() => void download()}><Icon name="download" /> Scarica ({mb(total(model))})</button>}
+        {!ready[model.id] && <button className="ui-btn primary" disabled={downloading} onClick={() => void download()}><Icon name="download" /> Scarica ({mb(total(model))})</button>}
         {ready[model.id] && <button className="ui-btn primary" disabled={busy} onClick={load}><Icon name="refresh" /> Carica i motori</button>}
-        <button className="ui-btn ghost" disabled={busy || !used} onClick={() => void clearModels().then(refresh)}><Icon name="trash" /> Elimina modelli ({mb(used)})</button>
+        <button className="ui-btn ghost" disabled={busy || downloading || !used} onClick={() => void clearModels().then(refresh)}><Icon name="trash" /> Elimina modelli ({mb(used)})</button>
       </div>
-      {dl && <p className="pr-muted" role="status">{dl}</p>}
+      {dl && <p className="pr-muted off-dl" role="status">{dl}</p>}
 
       {s.phase !== 'idle' && (
         <>

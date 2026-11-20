@@ -26,9 +26,17 @@ export function NewLessonForm({ courses, onCreated, onCancel }: Props) {
   const [picked, setLang] = useState<SpokenLang>()
   const lang = picked ?? defaultLang
 
+  // Doppio tocco su «Vai alla registrazione»: una sola lezione.
+  const [busy, setBusy] = useState(false)
   const submit = async () => {
-    if (!courseId || !title.trim()) return
-    onCreated(await createLesson(courseId, title, lang))
+    if (busy || !courseId || !title.trim()) return
+    setBusy(true)
+    try {
+      onCreated(await createLesson(courseId, title, lang))
+    } catch (err) {
+      console.error(err)
+      setBusy(false)
+    }
   }
 
   return (
@@ -53,7 +61,7 @@ export function NewLessonForm({ courses, onCreated, onCancel }: Props) {
       </label>
       </div>
       <div className="ui-row">
-        <button className="ui-btn primary" type="submit" disabled={!courseId || !title.trim()}><Icon name="mic" /> Vai alla registrazione</button>
+        <button className="ui-btn primary" type="submit" disabled={busy || !courseId || !title.trim()}><Icon name="mic" /> Vai alla registrazione</button>
         <button className="ui-btn" type="button" onClick={onCancel}>Annulla</button>
       </div>
     </form>

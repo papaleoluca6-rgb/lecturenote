@@ -1,7 +1,8 @@
 import { Icon, type IconName } from '../../lib/Icon'
-import { removeStrokes, restoreStrokes, strokeKey } from './data'
+import { pageExists, removeStrokes, restoreStrokes } from './data'
 import { HIGHLIGHTER_SIZE, SIZES } from './freehand'
-import { TEXT_SIZES, getTool, inkSaved, setTool, useInkTool, type InkOp, type InkTool } from './toolStore'
+import { strokeKey } from './strokeKey'
+import { TEXT_SIZES, dropOps, getTool, inkSaved, setTool, useInkTool, type InkOp, type InkTool } from './toolStore'
 import './ink.css'
 
 const PEN_COLORS = ['--ink-black', '--ink-blue', '--ink-red', '--ink-green', '--ink-purple', '--ink-orange']
@@ -45,22 +46,28 @@ function apply(op: InkOp, forward: boolean) {
   return add ? restoreStrokes(op.pageId, op.strokes) : removeStrokes(op.pageId, new Set(op.strokes.map(strokeKey)))
 }
 
-/** «Annulla» disfa l'ultima azione, che sia un tratto o una cancellazione con la gomma. */
-async function undo() {
+/**
+ * «Annulla» (`back`) disfa l'ultima azione, che sia un tratto o una cancellazione con la gomma; «Ripeti» la rifà.
+ * Le azioni su pagine che non esistono più (es. presentazione eliminata) si scartano e si passa alla precedente.
+ */
+async function step(back: boolean): Promise<void> {
   const { undo: stack, redo } = getTool()
-  const op = stack.at(-1)
+  const op = (back ? stack : redo).at(-1)
   if (!op) return
-  setTool({ undo: stack.slice(0, -1), redo: [...redo, op] })
-  await apply(op, false).then(() => inkSaved(), inkSaved)
+  setTool(back ? { undo: stack.slice(0, -1), redo: [...redo, op] } : { redo: redo.slice(0, -1), undo: [...stack, op] })
+  try {
+    if (!(await pageExists(op.pageId))) {
+      dropOps(new Set([op.pageId]))
+      return await step(back)
+    }
+    await apply(op, !back)
+    inkSaved()
+  } catch (err) {
+    inkSaved(err)
+  }
 }
-
-async function redo() {
-  const { undo: stack, redo } = getTool()
-  const op = redo.at(-1)
-  if (!op) return
-  setTool({ redo: redo.slice(0, -1), undo: [...stack, op] })
-  await apply(op, true).then(() => inkSaved(), inkSaved)
-}
+const undo = () => step(true)
+const redo = () => step(false)
 
 /** Strumenti della penna, condivisi da slide e pagine bianche: colonna a sinistra in orizzontale, riga in verticale. */
 export function InkToolbar({ focus, onFocus }: { focus: boolean; onFocus: () => void }) {

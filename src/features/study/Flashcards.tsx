@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { db, type Flashcard, type Id, type Sec } from '../../db/schema'
 import { aiLabel } from '../../lib/ai'
 import { Icon } from '../../lib/Icon'
 import { fmtSecs } from '../../lib/time'
-import { generateCards, type AiChoice } from './ai'
-import { addCards, grade, isDue } from './cards'
+import { aiMaxChars, generateCards, type AiChoice } from './ai'
+import { addCards, grade, isDue, nextDueAt } from './cards'
 import { textCutAt } from './events'
 
 /** Ripasso a carte: mostra la domanda, poi la risposta, e chiede se la sapevi. */
@@ -46,7 +46,7 @@ function Review({ cards, onDone, onPlay }: { cards: Flashcard[]; onDone: () => v
   )
 }
 
-interface Props { lessonId: Id; ai: AiChoice | null; source: () => string; now: () => Sec; onPlay?: (ts: Sec) => void }
+interface Props { lessonId: Id; ai: AiChoice | null; source: (maxChars: number) => string; now: () => Sec; onPlay?: (ts: Sec) => void }
 
 /** Flashcard della lezione: scritte a mano (sempre) o generate dall'AI facoltativa. */
 export function Flashcards({ lessonId, ai, source, now, onPlay }: Props) {
@@ -57,7 +57,16 @@ export function Flashcards({ lessonId, ai, source, now, onPlay }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [cut, setCut] = useState<string | null>(null)
+  // Ridisegna quando la prossima carta torna da ripassare (anche le sbagliate, dopo 5 minuti) a schermo fermo.
+  const [clock, setClock] = useState(() => Date.now())
   const due = cards.filter((c) => isDue(c)).sort((a, b) => a.due - b.due)
+  const wake = nextDueAt(cards)
+  useEffect(() => {
+    if (wake === null) return
+    // Al massimo un'ora: i timer di Android in standby possono slittare.
+    const t = setTimeout(() => setClock(Date.now()), Math.min(Math.max(wake - Date.now(), 0) + 250, 3_600_000))
+    return () => clearTimeout(t)
+  }, [wake, clock])
 
   const add = async () => {
     if (!front.trim() || !back.trim()) return
@@ -67,7 +76,7 @@ export function Flashcards({ lessonId, ai, source, now, onPlay }: Props) {
   }
   const generate = async () => {
     if (!ai) return
-    const text = source()
+    const text = source(aiMaxChars(ai))
     if (!text.trim()) return setError('Serve prima del testo: frasi trascritte o note.')
     setBusy(true)
     setError('')

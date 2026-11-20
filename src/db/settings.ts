@@ -17,12 +17,24 @@ export interface SettingsMap {
 }
 export type SettingKey = keyof SettingsMap
 
+// Funzioni recenti di Chrome che il tablet (Android, Chrome ≤138) non ha: si controllano prima di usarle.
+type SRCtorLike = { available?: unknown; prototype?: object }
+/** Translator API di Chrome (traduzione offline): assente su Android. */
+export const chromeTranslatorAvailable = () => typeof self !== 'undefined' && 'Translator' in self
+/** Riconoscimento vocale sul dispositivo (processLocally): senza, Chrome ignora l'opzione e manda l'audio ai server Google. */
+export function deviceSpeechAvailable(): boolean {
+  if (typeof self === 'undefined') return false
+  const w = self as unknown as { SpeechRecognition?: SRCtorLike; webkitSpeechRecognition?: SRCtorLike }
+  const C = w.SpeechRecognition ?? w.webkitSpeechRecognition
+  return !!C && (typeof C.available === 'function' || (!!C.prototype && 'processLocally' in C.prototype))
+}
+
 export const DEFAULTS: SettingsMap = {
   'apiKey.gemini': '',
   'apiKey.qwen': '',
   'apiKey.deepseek': '',
   'apiKey.kimi': '',
-  'stt.provider': 'webspeech-device',
+  'stt.provider': deviceSpeechAvailable() ? 'webspeech-device' : 'webspeech',
   'translator.provider': 'chrome',
   'ui.recordingDefaultLang': 'zh+en',
   'live.captions': 'off',
@@ -60,8 +72,12 @@ export function keyOf(provider: string): SettingKey | undefined {
   return k in DEFAULTS ? (k as SettingKey) : undefined
 }
 
-/** Un provider a chiave senza la chiave (es. dopo un ripristino) vale come il default gratuito. */
+/**
+ * Un provider a chiave senza la chiave (es. dopo un ripristino) vale come il default gratuito.
+ * Il riconoscimento sul dispositivo, dove Chrome non lo ha, vale come Web Speech (server Google): è quello che Chrome farebbe comunque.
+ */
 export function effectiveProvider<K extends 'stt.provider' | 'translator.provider'>(key: K, value: SettingsMap[K], hasKey: (k: SettingKey) => boolean): SettingsMap[K] {
   const need = keyOf(value)
-  return need && !hasKey(need) ? DEFAULTS[key] : value
+  const v = need && !hasKey(need) ? DEFAULTS[key] : value
+  return v === 'webspeech-device' && !deviceSpeechAvailable() ? ('webspeech' as SettingsMap[K]) : v
 }

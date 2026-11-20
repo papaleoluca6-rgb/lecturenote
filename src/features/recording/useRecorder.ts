@@ -25,8 +25,12 @@ export function useRecorder(lessonId: Id) {
   const state: RecState = rec.state
 
   useEffect(() => {
+    const unwatch = rec.watch()
     void rec.load().then(() => setElapsed(rec.elapsedSec()))
-    return () => void rec.stop()
+    return () => {
+      unwatch()
+      void rec.stop()
+    }
   }, [rec])
 
   useEffect(() => {
@@ -34,7 +38,7 @@ export function useRecorder(lessonId: Id) {
     const id = window.setInterval(() => {
       // Secondi interi: il timer mostra solo quelli, e così la schermata si ridisegna una volta al secondo invece di 4.
       setElapsed(Math.floor(rec.elapsedSec()))
-      void rec.tick()
+      rec.tick()
     }, 250)
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', warn)
@@ -58,6 +62,10 @@ export function useRecorder(lessonId: Id) {
     elapsed,
     error: error || rec.saveError,
     saving: rec.saving,
+    /** Audio che da troppo tempo non si riesce a salvare: si può scaricare. */
+    unsaved: rec.unsaved,
+    downloadUnsaved: () => rec.downloadUnsaved(),
+    discardUnsaved: () => rec.discardUnsaved(),
     wakeLock: rec.wake.active,
     /** Posizione esatta sulla timeline (per agganciare slide e note al tempo). */
     elapsedSec: () => rec.elapsedSec(),

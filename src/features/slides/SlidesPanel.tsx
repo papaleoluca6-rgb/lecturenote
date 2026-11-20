@@ -56,7 +56,9 @@ export function SlidesPanel({ lessonId, recording, now, overlay, player }: Props
       else setError('Nessun PDF o immagine riconosciuto.')
     } catch (err) {
       console.error(err)
-      setError('Import non riuscito: il file potrebbe essere danneggiato o protetto da password.')
+      // Il messaggio vero serve a capire il problema (prima diceva sempre «danneggiato», anche quando mancava la rete).
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(/password/i.test(msg) ? 'Il PDF è protetto da password: aprilo e salvalo senza password, poi riprova.' : `Import non riuscito (${msg}). Se il file si apre normalmente, riprova; se succede ancora, mandami questo messaggio.`)
     } finally {
       setBusy('')
     }

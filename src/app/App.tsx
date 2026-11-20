@@ -8,6 +8,7 @@ import { lastOpenLesson, rememberOpenLesson } from '../lib/lessonView'
 import { LessonPanels } from './LessonPanels'
 import { UpdateBanner } from './UpdateBanner'
 import { RecordingScreen } from '../features/recording/RecordingScreen'
+import { recordingFlag, setRecordingFlag } from '../features/recording/recordingFlag'
 import { SettingsScreen } from '../features/settings/SettingsScreen'
 import { ProbeScreen } from '../features/translation/probe/ProbeScreen'
 
@@ -23,15 +24,20 @@ const useHash = () => {
 
 export function App() {
   // Se Android ricarica l'app mentre una lezione era aperta, si riapre quella.
-  const [lessonId, setLesson] = useState<Id | null>(lastOpenLesson)
+  // Segno di registrazione ancora presente: Android ha chiuso l'app a metà lezione, si riapre quella lezione e si avvisa.
+  const [interrupted, setInterrupted] = useState<Id | null>(recordingFlag)
+  const [lessonId, setLesson] = useState<Id | null>(() => interrupted ?? lastOpenLesson())
   const [exportTarget, setExportTarget] = useState<ExportTarget | null>(null)
   const hash = useHash()
   const openLesson = (id: Id | null) => {
     rememberOpenLesson(id)
     setLesson(id)
+    setInterrupted(null)
   }
   // La lezione ricordata potrebbe essere stata eliminata (o era vuota): allora si resta nella libreria.
   useEffect(() => {
+    setRecordingFlag(null)
+    if (lessonId) rememberOpenLesson(lessonId)
     if (lessonId) void db.lessons.get(lessonId).then((l) => { if (!l) openLesson(null) })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -56,6 +62,7 @@ export function App() {
           key={lessonId}
           lessonId={lessonId}
           onClose={() => openLesson(null)}
+          notice={interrupted === lessonId ? "Registrazione interrotta: l'app è stata chiusa durante la registrazione. Tocca Continua per riprendere." : undefined}
           panels={(clock) => <LessonPanels lessonId={lessonId} clock={clock} />}
         />
       </div>

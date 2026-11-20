@@ -1,15 +1,6 @@
-import { MAX_SIDE, canvasToBlob, drawScaled, makeThumb, releaseCanvas } from './canvas'
+import { canvasToBlob, drawScaled, loadImage, releaseCanvas } from '../../lib/image'
+import { MAX_SIDE, makeThumb } from './canvas'
 import type { RenderedPage } from './pdfImport'
-
-function loadImage(file: Blob): Promise<HTMLImageElement> {
-  const url = URL.createObjectURL(file)
-  const img = new Image()
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Immagine non leggibile'))
-    img.src = url
-  }).finally(() => URL.revokeObjectURL(url))
-}
 
 /** Immagine singola → slide. Se è già piccola si tiene il file originale, altrimenti si riduce a MAX_SIDE. */
 export async function renderImage(file: Blob): Promise<RenderedPage> {

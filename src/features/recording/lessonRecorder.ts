@@ -1,20 +1,44 @@
-import { db, type Id, type Sec } from '../../db/schema'
+import { db, type AudioSegment, type Id, type Sec } from '../../db/schema'
+import { clearRecordingFlag, setRecordingFlag } from './recordingFlag'
 import { Segment } from './segment'
 import { ScreenWakeLock } from './wakeLock'
 
 export type RecState = 'idle' | 'recording' | 'paused'
 
-/** Oltre questa durata si apre un nuovo segmento sullo stesso microfono: blob più piccoli, salvataggi più leggeri. */
-const ROLLOVER_SEC = 20 * 60
+/**
+ * Oltre questa durata si apre un nuovo segmento sullo stesso microfono: ogni salvataggio (ogni 30 s)
+ * riscrive tutto il segmento in corso, quindi segmenti corti = molte meno scritture sul tablet.
+ */
+const ROLLOVER_SEC = 5 * 60
 
-/** Salvataggi finali ancora in corso, per lezione: riaprendo la lezione si aspetta che finiscano. */
-const pendingSaves = new Map<Id, Promise<void>>()
-export const whenSaved = (lessonId: Id): Promise<void> => pendingSaves.get(lessonId) ?? Promise.resolve()
+/**
+ * Segmenti fermati ma non ancora salvati (fine registrazione o cambio segmento), di tutte le lezioni.
+ * Un segmento resta qui (con il suo audio in memoria) finché il salvataggio non riesce: si riprova da solo.
+ */
+const pending = new Set<Segment>()
+const listeners = new Set<() => void>()
+const changed = () => listeners.forEach((f) => f())
+const pendingOf = (lessonId: Id) => [...pending].filter((s) => s.lessonId === lessonId)
+
+/** Salvataggi in corso della lezione: riaprendola si aspetta che finiscano. */
+export const whenSaved = (lessonId: Id): Promise<void> => Promise.all(pendingOf(lessonId).map((s) => s.stop())).then(() => {})
 /** Tutti i salvataggi in corso (es. prima di ricaricare l'app per un aggiornamento). */
-export const allSaved = (): Promise<unknown> => Promise.allSettled([...pendingSaves.values()])
+export const allSaved = (): Promise<unknown> => Promise.allSettled([...pending].map((s) => s.stop()))
 // Chiudere o ricaricare la pagina a salvataggio in corso perderebbe l'ultimo pezzo di audio: Chrome chiede conferma.
-const warnUnload = (e: BeforeUnloadEvent) => { if (pendingSaves.size) e.preventDefault() }
+const warnUnload = (e: BeforeUnloadEvent) => { if (pending.size) e.preventDefault() }
 addEventListener('beforeunload', warnUnload)
+
+/** Ferma il segmento e lo tiene tra i salvataggi in corso finché non è su IndexedDB. */
+function finish(seg: Segment): Promise<void> {
+  pending.add(seg)
+  changed()
+  return seg.stop().finally(() => {
+    pending.delete(seg)
+    changed()
+  })
+}
+
+const endOf = (segs: AudioSegment[]): Sec => segs.reduce((max, s) => Math.max(max, s.startSec + s.durationSec), 0)
 
 /**
  * Registra una lezione: un flusso del microfono, uno o più segmenti audio in sequenza sulla timeline.
@@ -22,10 +46,6 @@ addEventListener('beforeunload', warnUnload)
  */
 export class LessonRecorder {
   state: RecState = 'idle'
-  /** true mentre l'ultimo pezzo di audio viene scritto su IndexedDB dopo lo stop. */
-  saving = false
-  /** Ultimo salvataggio dell'audio fallito (es. spazio esaurito): va mostrato, altrimenti si perde la lezione senza saperlo. */
-  saveError = ''
   private starting = false
   /** Freccia indietro premuta mentre start() aspettava: il microfono appena aperto va richiuso. */
   private cancelled = false
@@ -33,12 +53,6 @@ export class LessonRecorder {
   private seg: Segment | null = null
   private baseSec: Sec = 0
   readonly wake = new ScreenWakeLock()
-
-  private onSaved = (error: string) => {
-    if (error === this.saveError) return
-    this.saveError = error
-    this.onChange()
-  }
 
   private onHidden = () => {
     if (document.visibilityState === 'hidden') this.seg?.flush()
@@ -52,6 +66,45 @@ export class LessonRecorder {
     this.onChange = onChange
   }
 
+  /** Riceve gli avvisi di tutti i segmenti (anche di sessioni precedenti ancora da salvare). Restituisce come smettere. */
+  watch(): () => void {
+    listeners.add(this.onChange)
+    return () => { listeners.delete(this.onChange) }
+  }
+
+  /** true mentre l'audio di una sessione già fermata viene scritto su IndexedDB. */
+  get saving(): boolean {
+    return this.state === 'idle' && pendingOf(this.lessonId).length > 0
+  }
+
+  /** Primo salvataggio fallito (es. spazio esaurito): va mostrato, altrimenti si perde la lezione senza saperlo. */
+  get saveError(): string {
+    return [this.seg, ...pendingOf(this.lessonId)].find((s) => s?.error)?.error ?? ''
+  }
+
+  /** true se dell'audio non si riesce a salvare da troppo tempo: si può scaricare come file. */
+  get unsaved(): boolean {
+    return pendingOf(this.lessonId).some((s) => s.stuck)
+  }
+
+  /** Scarica l'audio che non si riesce a salvare, per non perderlo (nome con data e minuto, per riconoscerlo). */
+  downloadUnsaved(): void {
+    const day = new Date().toISOString().slice(0, 10)
+    for (const s of pendingOf(this.lessonId).filter((p) => p.stuck)) {
+      const blob = s.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `lezione-${day}-${this.lessonId.slice(0, 6)}-dal-minuto-${Math.floor(s.startSec / 60)}.${blob.type.includes('mp4') ? 'm4a' : 'webm'}`
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
+    }
+  }
+
+  /** Dopo averlo scaricato: smette di riprovare il salvataggio di quell'audio (sblocca la lezione e la chiusura dell'app). */
+  discardUnsaved(): void {
+    for (const s of pendingOf(this.lessonId).filter((p) => p.stuck)) s.abandon()
+  }
+
   /** Flusso del microfono in uso (null da fermo): lo condividono i servizi che lavorano su blocchi di audio. */
   get micStream(): MediaStream | null {
     return this.stream
@@ -62,20 +115,19 @@ export class LessonRecorder {
     return this.seg ? this.seg.startSec + this.seg.durationSec() : this.baseSec
   }
 
-  /** Aspetta il salvataggio di una sessione precedente della stessa lezione, mostrando «Salvataggio…». */
-  private async waitSaved(): Promise<void> {
-    if (!pendingSaves.has(this.lessonId)) return
-    this.saving = true
-    this.onChange()
-    await whenSaved(this.lessonId)
-    this.saving = false
-    this.onChange()
+  /**
+   * Riparte da dove finisce l'audio, contando anche i segmenti ancora da salvare (senza aspettarli: un salvataggio
+   * che continua a fallire non deve bloccare la lezione). Restituisce il prossimo indice di segmento.
+   */
+  private async resumePoint(): Promise<number> {
+    const segs = await db.audio.where('lessonId').equals(this.lessonId).toArray()
+    const waiting = pendingOf(this.lessonId)
+    this.baseSec = Math.max(endOf(segs), ...waiting.map((s) => s.startSec + s.durationSec()))
+    return Math.max(0, ...segs.map((s) => s.index + 1), ...waiting.map((s) => s.index + 1))
   }
 
   async load(): Promise<void> {
-    await this.waitSaved()
-    const segs = await db.audio.where('lessonId').equals(this.lessonId).toArray()
-    this.baseSec = segs.reduce((max, s) => Math.max(max, s.startSec + s.durationSec), 0)
+    await this.resumePoint()
   }
 
   async start(): Promise<void> {
@@ -91,18 +143,16 @@ export class LessonRecorder {
   }
 
   private async begin(): Promise<void> {
-    await this.waitSaved()
-    const segs = await db.audio.where('lessonId').equals(this.lessonId).toArray()
-    this.baseSec = segs.reduce((max, s) => Math.max(max, s.startSec + s.durationSec), 0)
-    const nextIndex = segs.reduce((max, s) => Math.max(max, s.index + 1), 0)
+    const nextIndex = await this.resumePoint()
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true },
     })
     if (this.cancelled) return stream.getTracks().forEach((t) => t.stop())
     this.stream = stream
     for (const t of this.stream.getAudioTracks()) t.addEventListener('ended', () => void this.stop())
-    this.seg = new Segment(this.stream, this.lessonId, nextIndex, this.baseSec, this.onSaved)
+    this.seg = new Segment(this.stream, this.lessonId, nextIndex, this.baseSec, changed)
     this.state = 'recording'
+    setRecordingFlag(this.lessonId)
     document.addEventListener('visibilitychange', this.onHidden)
     await this.wake.acquire()
     this.onChange()
@@ -123,11 +173,11 @@ export class LessonRecorder {
   }
 
   /** Da chiamare periodicamente: apre un nuovo segmento quando quello corrente è troppo lungo. */
-  async tick(): Promise<void> {
+  tick(): void {
     const old = this.seg
     if (!old || !this.stream || this.state !== 'recording' || old.durationSec() < ROLLOVER_SEC) return
-    this.seg = new Segment(this.stream, this.lessonId, old.index + 1, old.startSec + old.durationSec(), this.onSaved)
-    await old.stop()
+    this.seg = new Segment(this.stream, this.lessonId, old.index + 1, old.startSec + old.durationSec(), changed)
+    void finish(old)
   }
 
   /**
@@ -145,21 +195,12 @@ export class LessonRecorder {
     this.state = 'idle'
     this.seg = null
     this.stream = null
-    this.saving = true
     document.removeEventListener('visibilitychange', this.onHidden)
     this.wake.release()
+    const saved = seg ? finish(seg) : Promise.resolve()
+    // Il microfono si chiude quando il recorder ha consegnato gli ultimi dati, anche se il salvataggio deve ancora riuscire.
+    void (seg?.ended ?? Promise.resolve()).then(() => stream?.getTracks().forEach((t) => t.stop()))
     this.onChange()
-    const done = (async () => {
-      try {
-        if (seg) await seg.stop()
-      } finally {
-        stream?.getTracks().forEach((t) => t.stop())
-        this.saving = false
-        pendingSaves.delete(this.lessonId)
-        this.onChange()
-      }
-    })()
-    pendingSaves.set(this.lessonId, done)
-    return done
+    return saved.then(() => clearRecordingFlag(this.lessonId))
   }
 }

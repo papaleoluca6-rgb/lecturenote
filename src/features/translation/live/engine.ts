@@ -1,5 +1,5 @@
 import { db, newId, type Id, type Lang, type Sec, type SpokenLang } from '../../../db/schema'
-import { effectiveProvider, getSetting, type SettingKey, type SettingsMap } from '../../../db/settings'
+import { chromeTranslatorAvailable, deviceSpeechAvailable, effectiveProvider, getSetting, type SettingKey, type SettingsMap } from '../../../db/settings'
 import { detectLang } from '../../../lib/detectLang'
 import { BlockRecorder, blobToWav16kRms } from '../probe/audio'
 import { loadConfig, type ProbeConfig } from '../probe/config'
@@ -16,10 +16,19 @@ const MIN_RMS = 0.003
 const RETRY_MAX = 5
 const HAS_WORDS = /\p{L}/u
 const WS_LANG: Record<SpokenLang, string> = { zh: 'zh-CN', 'zh+en': 'zh-CN', en: 'en-US', it: 'it-IT' }
+/**
+ * Frasi in traduzione adesso, o tradotte in vuoto, in tutta la pagina: dopo pausa e ripresa la vecchia sessione
+ * può avere ancora una richiesta in corso, e il recupero della nuova non deve tradurre la stessa frase.
+ */
+const inFlight = new Set<Id>()
 
 export interface LiveSetup {
   stt: SettingsMap['stt.provider']
   translator: SettingsMap['translator.provider']
+  /** false se il traduttore scelto non c'è su questo dispositivo: si salvano solo le frasi originali. */
+  canTranslate: boolean
+  /** Avviso da mostrare una volta nei sottotitoli ('' = nessuno). */
+  notice: string
   cfg: ProbeConfig
 }
 
@@ -27,11 +36,14 @@ export interface LiveSetup {
 export async function loadSetup(): Promise<LiveSetup> {
   const cfg = await loadConfig()
   const hasKey = (k: SettingKey) => !!cfg.keys[k.slice('apiKey.'.length) as keyof ProbeConfig['keys']]
-  return {
-    cfg,
-    stt: effectiveProvider('stt.provider', await getSetting('stt.provider'), hasKey),
-    translator: effectiveProvider('translator.provider', await getSetting('translator.provider'), hasKey),
-  }
+  const stt = effectiveProvider('stt.provider', await getSetting('stt.provider'), hasKey)
+  const translator = effectiveProvider('translator.provider', await getSetting('translator.provider'), hasKey)
+  const canTranslate = translator !== 'chrome' || chromeTranslatorAvailable()
+  const notice = [
+    stt === 'webspeech' && !deviceSpeechAvailable() ? "Il riconoscimento sul dispositivo non c'è su questo tablet: il parlato passa dai server Google (in Cina serve la VPN)." : '',
+    canTranslate ? '' : "La traduzione offline di Chrome non c'è su questo tablet: salvo solo le frasi originali. Per tradurle scegli un'AI con la tua chiave nelle impostazioni.",
+  ].filter(Boolean).join(' ')
+  return { cfg, stt, translator, canTranslate, notice }
 }
 
 export interface LiveEvents {
@@ -50,8 +62,6 @@ export class LiveTranslator {
   private readonly now: () => Sec
   private readonly on: LiveEvents
   private stopped = false
-  /** Frasi in traduzione adesso, o tradotte in vuoto: il recupero non le riprende. */
-  private readonly busy = new Set<Id>()
   /** Possono esserci frasi della lezione senza traduzione (anche da sessioni precedenti). */
   private missing = true
   private retrying = false
@@ -99,12 +109,17 @@ export class LiveTranslator {
       const { wav, rms } = await blobToWav16kRms(blob)
       if (rms < MIN_RMS) return
       const text = (await transcribe('gemini', this.setup.cfg, wav)).trim()
-      this.on.onError('')
+      this.error('')
       // Al silenzio il modello può rispondere "" o sola punteggiatura: non è una frase.
       if (HAS_WORDS.test(text)) await this.addPhrase(text, Math.max(0, ts), 'ai')
     } catch (e) {
-      this.on.onError(`Gemini: ${(e as Error).message}`)
+      this.error(`Gemini: ${(e as Error).message}`)
     }
+  }
+
+  /** Dopo stop() le richieste ancora in corso non sovrascrivono gli errori della nuova sessione. */
+  private error(msg: string) {
+    if (!this.stopped) this.on.onError(msg)
   }
 
   private langOf(text: string): Lang {
@@ -118,26 +133,31 @@ export class LiveTranslator {
     try {
       await db.transcript.add({ id, lessonId: this.lessonId, ts: at, lang, text, source })
     } catch (e) {
-      return this.on.onError(`Salvataggio della frase: ${(e as Error).message}`)
+      return this.error(`Salvataggio della frase: ${(e as Error).message}`)
     }
-    if (lang !== 'it' && (await this.translateRow(id, at, lang, text))) void this.catchUp()
+    if (lang !== 'it' && this.setup.canTranslate && (await this.translateRow(id, at, lang, text))) void this.catchUp()
   }
 
   /** Traduce una frase già salvata. true se il servizio ha risposto. */
   private async translateRow(id: Id, ts: Sec, from: 'zh' | 'en', text: string): Promise<boolean> {
-    this.busy.add(id)
+    if (inFlight.has(id)) return true
+    inFlight.add(id)
     try {
       const out = await translate(this.setup.translator, this.setup.cfg, text, from)
       if (out) {
-        await db.translations.add({ id: newId(), lessonId: this.lessonId, transcriptId: id, ts, from, to: 'it', text: out })
-        this.busy.delete(id)
+        // Controllo e scrittura insieme: una frase non riceve mai due traduzioni.
+        await db.transaction('rw', db.translations, async () => {
+          if (await db.translations.where('transcriptId').equals(id).count()) return
+          await db.translations.add({ id: newId(), lessonId: this.lessonId, transcriptId: id, ts, from, to: 'it', text: out })
+        })
+        inFlight.delete(id)
       }
-      this.on.onError('')
+      this.error('')
       return true
     } catch (e) {
-      this.busy.delete(id)
+      inFlight.delete(id)
       this.missing = true
-      this.on.onError(`Traduzione: ${(e as Error).message}`)
+      this.error(`Traduzione: ${(e as Error).message}`)
       return false
     }
   }
@@ -149,13 +169,13 @@ export class LiveTranslator {
     try {
       const done = new Set((await db.translations.where('lessonId').equals(this.lessonId).toArray()).map((t) => t.transcriptId))
       const todo = (await db.transcript.where('lessonId').equals(this.lessonId).toArray())
-        .filter((r) => r.lang !== 'it' && !done.has(r.id) && !this.busy.has(r.id))
+        .filter((r) => r.lang !== 'it' && !done.has(r.id) && !inFlight.has(r.id))
       this.missing = todo.length > RETRY_MAX
       for (const r of todo.slice(0, RETRY_MAX)) {
-        if (r.lang === 'it' || !(await this.translateRow(r.id, r.ts, r.lang, r.text))) break
+        if (this.stopped || r.lang === 'it' || !(await this.translateRow(r.id, r.ts, r.lang, r.text))) break
       }
     } catch (e) {
-      this.on.onError(`Recupero traduzioni: ${(e as Error).message}`)
+      this.error(`Recupero traduzioni: ${(e as Error).message}`)
     } finally {
       this.retrying = false
     }

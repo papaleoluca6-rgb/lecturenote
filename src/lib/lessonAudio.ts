@@ -9,12 +9,22 @@ export class LessonAudio {
   private segs: AudioSegment[] = []
   private i = -1
   private url = ''
+  /** Punto del segmento da raggiungere appena il file è pronto (prima non si può impostare currentTime). */
+  private pendingOffset: Sec = 0
+  /** Da far partire appena il file è pronto (un solo ascoltatore: un caricamento vecchio non deve far partire l'audio). */
+  private pendingPlay = false
   private readonly listeners = new Set<() => void>()
   private readonly emit = () => this.listeners.forEach((f) => f())
 
   constructor() {
     this.el.preload = 'metadata'
     for (const ev of ['timeupdate', 'play', 'pause', 'loadedmetadata']) this.el.addEventListener(ev, this.emit)
+    // Il tempo si può impostare solo quando il file è pronto.
+    this.el.addEventListener('loadedmetadata', () => {
+      if (this.pendingOffset) this.el.currentTime = this.pendingOffset
+      if (this.pendingPlay) void this.el.play().catch(() => {})
+      this.pendingPlay = false
+    })
     this.el.addEventListener('ended', () => {
       if (this.i + 1 < this.segs.length) this.load(this.i + 1, 0, true)
       else this.emit()
@@ -35,7 +45,9 @@ export class LessonAudio {
     else if (cur) {
       this.i = i
       // Il segmento che si sta ascoltando è stato risalvato più lungo (fine registrazione): si ricarica dallo stesso punto.
-      if (segs[i].blob.size !== cur.blob.size) this.load(i, this.el.currentTime, !this.el.paused)
+      // Se il file non era ancora pronto, valgono il punto e il play richiesti, non il tempo (ancora 0) dell'elemento.
+      const loading = this.el.readyState < 1
+      if (segs[i].blob.size !== cur.blob.size) this.load(i, loading ? this.pendingOffset : this.el.currentTime, loading ? this.pendingPlay : !this.el.paused)
     }
     this.emit()
   }
@@ -45,7 +57,8 @@ export class LessonAudio {
   }
 
   get time(): Sec {
-    return this.i < 0 ? 0 : this.segs[this.i].startSec + this.el.currentTime
+    if (this.i < 0) return 0
+    return this.segs[this.i].startSec + (this.el.readyState < 1 ? this.pendingOffset : this.el.currentTime)
   }
 
   get playing(): boolean {
@@ -60,11 +73,14 @@ export class LessonAudio {
   playAt(ts: Sec): void {
     if (!this.segs.length) return
     const t = Math.max(0, Math.min(ts, this.total))
-    let i = this.segs.findIndex((s) => t >= s.startSec && t < s.startSec + s.durationSec)
-    if (i < 0) i = t <= this.segs[0].startSec ? 0 : this.segs.length - 1
+    // Ultimo segmento iniziato prima di t (in un vuoto tra segmenti: la fine del precedente, poi si passa al successivo).
+    let i = 0
+    this.segs.forEach((s, k) => { if (s.startSec <= t) i = k })
     const offset = Math.max(0, t - this.segs[i].startSec)
     if (i === this.i) {
-      this.el.currentTime = offset
+      // File non ancora pronto: lo prende il listener di load(), altrimenti rimetterebbe il punto vecchio.
+      if (this.el.readyState < 1) this.pendingOffset = offset
+      else this.el.currentTime = offset
       void this.el.play().catch(() => {})
     } else this.load(i, offset, true)
   }
@@ -100,10 +116,7 @@ export class LessonAudio {
     this.i = i
     this.url = URL.createObjectURL(this.segs[i].blob)
     this.el.src = this.url
-    // Il tempo si può impostare solo quando il file è pronto.
-    this.el.addEventListener('loadedmetadata', () => {
-      if (offset) this.el.currentTime = offset
-      if (play) void this.el.play().catch(() => {})
-    }, { once: true })
+    this.pendingOffset = offset
+    this.pendingPlay = play
   }
 }

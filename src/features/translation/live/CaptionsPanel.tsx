@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { memo, useEffect, useRef, useState } from 'react'
 import { db, type Id, type Sec, type TranscriptSegment } from '../../../db/schema'
-import { setSetting, useSetting } from '../../../db/settings'
+import { chromeTranslatorAvailable, setSetting, useSetting } from '../../../db/settings'
 import { Icon } from '../../../lib/Icon'
 import { fmtSecs } from '../../../lib/time'
 import { prepareChromeTranslator, useLiveTranslator } from './useLiveTranslator'
@@ -38,7 +38,7 @@ export function CaptionsPanel({ lessonId, recording, running, now, stream }: Pro
   const toggle = () => {
     setNotice('')
     if (enabled) return void setSetting('live.captions', 'off')
-    if (translator === 'chrome') void prepareChromeTranslator(spoken, setNotice).then((m) => m && setNotice(m))
+    if (translator === 'chrome' && chromeTranslatorAvailable()) void prepareChromeTranslator(spoken, setNotice).then((m) => m && setNotice(m))
     void setSetting('live.captions', 'on')
   }
 
@@ -53,13 +53,14 @@ export function CaptionsPanel({ lessonId, recording, running, now, stream }: Pro
         <span className={`ui-badge${enabled && running ? ' ok' : ''}`}>{status}</span>
         {live.setup && enabled && (
           <span className="ui-muted cap-setup">
-            Parlato: {STT_LABEL[live.setup.stt]} · Traduzione: {live.setup.translator === 'chrome' ? 'Chrome offline' : live.setup.translator}
+            Parlato: {STT_LABEL[live.setup.stt]} · Traduzione: {!live.setup.canTranslate ? 'nessuna (solo originale)' : live.setup.translator === 'chrome' ? 'Chrome offline' : live.setup.translator}
           </span>
         )}
         {/* Durante la registrazione meglio non cambiare il motore della traduzione. */}
         {!recording && <a className="ui-btn ghost sm" href="#impostazioni"><Icon name="settings" size={16} /> Cambia</a>}
       </header>
       {(live.error || notice) && <p className={live.error ? 'ui-error' : 'ui-muted'} role="status">{live.error || notice}</p>}
+      {enabled && live.setup?.notice && <p className="ui-muted" role="note">{live.setup.notice}</p>}
 
       {lines && lines.length === 0 && !live.interim ? (
         <div className="ui-empty">

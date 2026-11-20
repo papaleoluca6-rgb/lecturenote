@@ -1,9 +1,11 @@
 import { Icon } from '../../lib/Icon'
 import { fmtSecs } from '../../lib/time'
 import type { LessonAudio } from '../../lib/lessonAudio'
+import { useAudioTick } from '../../lib/useLessonAudio'
 
 /** Comandi di riascolto: play/pausa, ±10 s, barra del tempo su tutta la lezione. */
 export function PlayerBar({ player, disabled }: { player: LessonAudio; disabled: boolean }) {
+  useAudioTick(player)
   if (player.empty) return <p className="ui-muted st-noaudio">Nessun audio registrato: la timeline mostra comunque note, slide e frasi.</p>
   const total = player.total
   return (

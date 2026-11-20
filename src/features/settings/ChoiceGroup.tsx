@@ -3,6 +3,8 @@ export interface Choice<V extends string> {
   label: string
   help: string
   disabled?: boolean
+  /** Perché non si può scegliere (default: manca la chiave). */
+  offNote?: string
 }
 
 export function ChoiceGroup<V extends string>({ name, label, value, choices, onChange }: {
@@ -19,7 +21,7 @@ export function ChoiceGroup<V extends string>({ name, label, value, choices, onC
           <input type="radio" name={name} checked={value === c.value} disabled={c.disabled} onChange={() => onChange(c.value)} />
           <span>
             <strong>{c.label}</strong>
-            <small>{c.help}{c.disabled ? ' — richiede una chiave' : ''}</small>
+            <small>{c.help}{c.disabled ? ` — ${c.offNote ?? 'richiede una chiave'}` : ''}</small>
           </span>
         </label>
       ))}
